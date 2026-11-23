@@ -18,6 +18,7 @@ namespace DeathNotice.Game
         private List<OptionData> options;
         private string current;
         private Action<OptionData> onPick;
+        private bool animateNext;
 
         public bool IsOpen { get { return root != null; } }
         public object Owner { get; private set; }
@@ -35,6 +36,7 @@ namespace DeathNotice.Game
             options = opts ?? new List<OptionData>();
             current = currentId;
             onPick = pick;
+            animateNext = true;
             Rebuild();
             AudioManager.PlaySfx("open");
         }
@@ -88,6 +90,9 @@ namespace DeathNotice.Game
             Outline o = panel.gameObject.AddComponent<Outline>();
             o.effectColor = new Color(0.2f, 0.17f, 0.15f, 0.9f);
             o.effectDistance = new Vector2(2f, -2f);
+            Shadow drop = panel.gameObject.AddComponent<Shadow>();
+            drop.effectColor = new Color(0f, 0f, 0f, 0.25f);
+            drop.effectDistance = new Vector2(4f, -6f);
 
             // Below the anchor unless it would leave the screen, then above.
             float layerBottom = layer.rect.yMin;
@@ -101,6 +106,10 @@ namespace DeathNotice.Game
                 prt.pivot = new Vector2(0f, 1f);
                 prt.anchoredPosition = topLeft - new Vector2(0f, 2f);
             }
+
+            // Unfold from the edge it hangs from (only when it first opens, not on a Shift refresh).
+            if (animateNext) panel.gameObject.AddComponent<PopupAnim>();
+            animateNext = false;
 
             if (options.Count == 0)
             {

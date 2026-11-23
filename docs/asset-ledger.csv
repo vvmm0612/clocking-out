@@ -15,3 +15,6 @@ Assets/Resources/Audio/Bgm/title.ogg,music,,,,,,,To fill in
 Assets/Resources/Audio/Sfx/*,sfx,,,,,,,To fill in: one row per file
 UI textures (notice / stamps / certificate),texture,,,,,,,To fill in: one row per file
 itch cover 630x500,image,,,,,,,To fill in
+Assets/Shaders/*.shader + ToonCore.hlsl,shader,original,vvmm0612 (with generative AI coding assistance),MIT,partial,,2026-11,"Toon (cel shading + inverted-hull outline), ToonTransparent (water / glass / ghost / beam), ParticleAdd, Sky gradient"
+Assets/Resources/Materials/Toon.mat ToonTransparent.mat ParticleAdd.mat Sky.mat,material,generated,VisualSetup.cs (editor script),MIT,no,,2026-11,Template materials so the shaders ship in WebGL builds
+docs/press/*.png,image,generated (in-game render),PressKitCapture.cs (PlayMode tool),Same as game,partial,,2026-11,"Press screenshots 1920x1080 and itch cover 630x500, rendered from the game itself; UI textures and the Reaper silhouette are procedural (UITextures.cs)"

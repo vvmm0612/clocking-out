@@ -75,17 +75,18 @@ namespace DeathNotice.Game
             }
 
             GameObject playerModel = null;
+            bool isDeath = level != null && string.Equals(level.deceased, "DEATH", StringComparison.OrdinalIgnoreCase);
             if (useModels)
             {
-                bool isDeath = level != null && string.Equals(level.deceased, "DEATH", StringComparison.OrdinalIgnoreCase);
                 if (isDeath) playerModel = LoadModel(CommonFolder + "/" + DeathModel);
                 if (playerModel == null) playerModel = LoadModel(CommonFolder + "/" + PlayerModel);
             }
-            stage.player = Figure.Create(go.transform, "Player", stage.palette.player, 0.7f, false, null, playerModel);
+            stage.player = Figure.Create(go.transform, "Player", stage.palette.player, 0.7f, false, null, playerModel, isDeath ? FigureStyle.Reaper : FigureStyle.Player);
             stage.player.gameObject.SetActive(false);
-            stage.ghost = Figure.Create(go.transform, "Ghost", new Color(0.82f, 0.86f, 1f, 0.45f), 0.7f, true, null, playerModel);
+            stage.ghost = Figure.Create(go.transform, "Ghost", new Color(0.82f, 0.86f, 1f, 0.42f), 0.7f, true, null, playerModel, FigureStyle.Ghost);
             stage.ghost.gameObject.SetActive(false);
             stage.InitShowables();
+            stage.ComputeFitBounds();
             return stage;
         }
 

@@ -64,6 +64,21 @@ namespace DeathNotice.Game
             sfxVolume = PlayerPrefs.GetFloat(KeySfx, 0.8f);
         }
 
+        /// <summary>
+        /// On WebGL the browser decodes audio asynchronously; until a clip is decoded its loadState is not
+        /// Loaded, and playing it then makes the engine ask for its length too early. Clips are loaded lazily
+        /// (loading every clip at boot just logs "Trying to get length of sound which is not loaded" once per
+        /// clip — the engine does that on object load), and only Loaded clips are played: a not-yet-decoded
+        /// sfx is skipped, music waits for its clip (FadeWhenLoaded).
+        /// </summary>
+        private static bool Ready(AudioClip clip)
+        {
+            if (clip == null) return false;
+            if (clip.loadState == AudioDataLoadState.Loaded) return true;
+            if (clip.loadState == AudioDataLoadState.Unloaded) clip.LoadAudioData();
+            return false;
+        }
+
         public static void PlaySfx(string name)
         {
             if (Instance != null) Instance.PlaySfxInternal(name);
@@ -96,6 +111,7 @@ namespace DeathNotice.Game
             }
             AudioClip clip = Load(SfxFolder + name);
             if (clip == null || sfxSource == null) return;
+            if (!Ready(clip)) return; // still decoding (first moments of a WebGL session): skip this one
             sfxSource.PlayOneShot(clip, sfxVolume);
             int n;
             sfxPlays[name] = sfxPlays.TryGetValue(name, out n) ? n + 1 : 1;
@@ -116,8 +132,21 @@ namespace DeathNotice.Game
             AudioClip clip = Load(BgmFolder + name);
             if (clip == null) return; // keep whatever is playing
             currentBgm = name;
-            StartFade(clip);
             bgmHistory.Add(name);
+            if (Ready(clip)) StartFade(clip);
+            else StartCoroutine(FadeWhenLoaded(clip, name));
+        }
+
+        private IEnumerator FadeWhenLoaded(AudioClip clip, string name)
+        {
+            float until = Time.unscaledTime + 10f;
+            while (clip != null && clip.loadState != AudioDataLoadState.Loaded && Time.unscaledTime < until)
+            {
+                if (clip.loadState == AudioDataLoadState.Failed) yield break;
+                yield return null;
+            }
+            if (clip == null || clip.loadState != AudioDataLoadState.Loaded || currentBgm != name) yield break;
+            StartFade(clip);
         }
 
         /// <summary>Fades the current track out while the new one (or silence) fades in.</summary>

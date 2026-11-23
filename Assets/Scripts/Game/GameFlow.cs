@@ -122,7 +122,52 @@ namespace DeathNotice.Game
         {
             if (screen != null) Destroy(screen.gameObject);
             screen = null;
+            DestroyShowcase();
         }
+
+        // ---------------------------------------------------------------- title showcase
+
+        private Stage showcase;
+
+        /// <summary>The title's backdrop: case 1's diorama on a slowly turning stand, lamp lit, framed on the right.</summary>
+        private void BuildShowcase()
+        {
+            if (showcase != null || levels.Count == 0 || root == null) return;
+            try
+            {
+                showcase = StageBuilder.Build(levels[0], root.World);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[GameFlow] Title showcase failed: " + e.Message);
+                showcase = null;
+                return;
+            }
+            showcase.name = "TitleShowcase";
+            AnchorTag lamp = showcase.Find("lamp");
+            if (lamp != null) lamp.LightUp();
+            root.ApplyLighting(showcase.palette, false);
+            Bounds b = showcase.fitBounds;
+            // The turning stand sweeps a cylinder; frame most of it (the sea tray's corners may brush the edge).
+            float r = new Vector2(b.extents.x, b.extents.z).magnitude * 0.78f;
+            Bounds sweep = new Bounds(b.center, new Vector3(r * 2f, b.size.y, r * 2f));
+            Turntable tt = showcase.gameObject.AddComponent<Turntable>();
+            tt.center = b.center;
+            root.Rig.fullScreen = true;
+            root.Rig.window = Rect.MinMaxRect(-0.02f, -0.92f, 0.98f, 0.78f);
+            root.Rig.FitTo(sweep, 21f, -8f, 0.86f);
+            root.SetFogRange(root.Rig.Distance, b.min.y);
+        }
+
+        private void DestroyShowcase()
+        {
+            if (showcase != null) Destroy(showcase.gameObject);
+            showcase = null;
+            if (root != null && root.Rig != null) root.Rig.fullScreen = false;
+        }
+
+        /// <summary>For the press-kit tool: the title's diorama (null when not on the title).</summary>
+        public Stage Showcase { get { return showcase; } }
 
         /// <summary>Makes the whole screen a button (with a short delay so a held click does not skip it).</summary>
         private void ClickAnywhere(RectTransform target, UnityAction action)
@@ -146,22 +191,51 @@ namespace DeathNotice.Game
             levelCtl.Exit();
             AudioManager.PlayBgm(clickedToStart ? "title" : "");
             RectTransform s = NewScreen("Title");
+            // See-through: the turning diorama behind is the title art. The screen still catches clicks.
+            s.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
+            BuildShowcase();
+
+            // Left column shade so the lettering reads over any sky.
+            Image shade = UIFactory.Panel(s, "Shade", new Color(0.06f, 0.05f, 0.08f, 0.78f), false);
+            shade.sprite = UITextures.FadeRight();
+            shade.rectTransform.anchorMin = new Vector2(0f, 0f);
+            shade.rectTransform.anchorMax = new Vector2(0.62f, 1f);
+            shade.rectTransform.offsetMin = Vector2.zero;
+            shade.rectTransform.offsetMax = Vector2.zero;
+            Image bottomShade = UIFactory.Panel(s, "BottomShade", new Color(0.06f, 0.05f, 0.08f, 0.55f), false);
+            bottomShade.sprite = UITextures.Fade();
+            bottomShade.rectTransform.anchorMin = new Vector2(0f, 0f);
+            bottomShade.rectTransform.anchorMax = new Vector2(1f, 0f);
+            bottomShade.rectTransform.pivot = new Vector2(0.5f, 0f);
+            bottomShade.rectTransform.sizeDelta = new Vector2(0f, 120f);
+            bottomShade.rectTransform.anchoredPosition = Vector2.zero;
+
+            const float left = 84f;
+            Label kicker = UIFactory.Text(s, "Kicker", "DEPARTMENT OF FINAL ARRANGEMENTS  ·  FORM 1-D", 14f, new Color(0.86f, 0.62f, 0.5f, 1f), TextAnchor.MiddleLeft, true);
+            UIFactory.Box(kicker.rect, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(left + 2f, 296f), new Vector2(640f, 22f));
+            Label title = UIFactory.Text(s, "Title", "CLOCKING\nOUT", 96f, ScreenInk, TextAnchor.MiddleLeft, true);
+            UIFactory.Box(title.rect, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(left - 4f, 172f), new Vector2(700f, 220f));
+            Shadow ts = title.gameObject.AddComponent<Shadow>();
+            ts.effectColor = new Color(0f, 0f, 0f, 0.55f);
+            ts.effectDistance = new Vector2(3f, -4f);
 
             Image band = UIFactory.Panel(s, "Band", Blood, false);
-            UIFactory.Box(band.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 128f), new Vector2(560f, 6f));
+            UIFactory.Box(band.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(left, 50f), new Vector2(430f, 6f));
+            Image dia = UIFactory.Panel(s, "BandEnd", Blood, false);
+            dia.sprite = UITextures.Diamond();
+            UIFactory.Box(dia.rectTransform, new Vector2(0f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(left + 438f, 53f), new Vector2(16f, 16f));
+            Label sub = UIFactory.Text(s, "Subtitle", "A paperwork puzzle about dying on schedule", 24f, new Color(0.9f, 0.85f, 0.76f, 1f), TextAnchor.MiddleLeft, false);
+            UIFactory.Box(sub.rect, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(left, 16f), new Vector2(700f, 36f));
 
-            Label title = UIFactory.Text(s, "Title", "CLOCKING OUT", 76f, ScreenInk, TextAnchor.MiddleCenter, true);
-            UIFactory.Box(title.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 190f), new Vector2(1000f, 100f));
-            Label sub = UIFactory.Text(s, "Subtitle", "A paperwork puzzle about dying on schedule", 22f, ScreenInkSoft, TextAnchor.MiddleCenter, false);
-            UIFactory.Box(sub.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 98f), new Vector2(900f, 36f));
+            Label foot = UIFactory.Text(s, "Footer", "Game Off 2026  ·  theme: SHIFT", 14f, ScreenInkSoft, TextAnchor.MiddleLeft, false);
+            UIFactory.Box(foot.rect, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(left, 18f), new Vector2(700f, 24f));
 
-            Label foot = UIFactory.Text(s, "Footer", "Game Off 2026  ·  theme: SHIFT", 14f, ScreenInkSoft, TextAnchor.MiddleCenter, false);
-            UIFactory.Box(foot.rect, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(700f, 24f));
+            ReaperUI.Create(s, 330f, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-26f, -14f), false);
 
             if (!clickedToStart)
             {
-                Label click = UIFactory.Text(s, "Click", "Click to start", 26f, ScreenInk, TextAnchor.MiddleCenter, false);
-                UIFactory.Box(click.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -60f), new Vector2(600f, 40f));
+                Label click = UIFactory.Text(s, "Click", "Click to start", 26f, ScreenInk, TextAnchor.MiddleLeft, true);
+                UIFactory.Box(click.rect, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(left, -60f), new Vector2(600f, 40f));
                 click.gameObject.AddComponent<Pulse>();
                 ClickAnywhere(s, OnFirstClick);
                 return;
@@ -180,7 +254,10 @@ namespace DeathNotice.Game
 
         private void BuildTitleMenu(RectTransform s)
         {
-            float y = 10f;
+            float y = -64f;
+            const float left = 84f;
+            Vector2 a = new Vector2(0f, 0.5f);
+            Vector2 pv = new Vector2(0f, 0.5f);
             Color btnBg = new Color(0.95f, 0.92f, 0.84f, 1f);
             int cleared = Mathf.Min(Progress.Cleared, Mathf.Max(0, levels.Count));
             if (Progress.HasSave && levels.Count > 0)
@@ -188,24 +265,23 @@ namespace DeathNotice.Game
                 int next = Mathf.Clamp(cleared, 0, levels.Count - 1);
                 string label = cleared >= levels.Count ? "Continue (all cases closed)" : "Continue — Case " + (next + 1);
                 UIButton cont = UIFactory.Button(s, "Continue", label, 22f, Blood, ScreenInk, delegate { Go(delegate { StartLevel(next); }); });
-                UIFactory.Box(cont.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(360f, 50f));
+                UIFactory.Box(cont.rect, a, pv, new Vector2(left, y), new Vector2(360f, 50f));
                 y -= 62f;
             }
             UIButton start = UIFactory.Button(s, "NewGame", Progress.HasSave ? "Start from Case 1" : "Start", 20f, btnBg, UIFactory.Ink, delegate { Go(delegate { StartLevel(0); }); });
-            UIFactory.Box(start.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(360f, 44f));
+            UIFactory.Box(start.rect, a, pv, new Vector2(left, y), new Vector2(360f, 44f));
             y -= 56f;
             UIButton settings = UIFactory.Button(s, "Settings", "Settings", 20f, btnBg, UIFactory.Ink, OpenSettings);
-            UIFactory.Box(settings.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(360f, 44f));
-            y -= 70f;
+            UIFactory.Box(settings.rect, a, pv, new Vector2(left, y), new Vector2(360f, 44f));
+            y -= 60f;
 
             if (Progress.HasSave && levels.Count > 0)
             {
-                Label sel = UIFactory.Text(s, "SelectLabel", "CASE FILES", 15f, ScreenInkSoft, TextAnchor.MiddleCenter, true);
-                UIFactory.Box(sel.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(400f, 22f));
+                Label sel = UIFactory.Text(s, "SelectLabel", "CASE FILES", 15f, ScreenInkSoft, TextAnchor.MiddleLeft, true);
+                UIFactory.Box(sel.rect, a, pv, new Vector2(left, y), new Vector2(400f, 22f));
                 y -= 44f;
-                float w = 72f;
-                float gap = 10f;
-                float total = levels.Count * w + (levels.Count - 1) * gap;
+                float w = 66f;
+                float gap = 8f;
                 for (int i = 0; i < levels.Count; i++)
                 {
                     int idx = i;
@@ -213,8 +289,8 @@ namespace DeathNotice.Game
                     int best = Progress.GetBest(levels[i].id);
                     string seal = best > 0 ? "\n" + Progress.SealName(best) : "";
                     Color bg = best > 0 ? Progress.SealColor(best) : (unlocked ? btnBg : new Color(0.3f, 0.28f, 0.3f, 1f));
-                    UIButton b = UIFactory.Button(s, "Case" + (i + 1), (i + 1) + seal, best > 0 ? 15f : 22f, bg, UIFactory.Ink, delegate { Go(delegate { StartLevel(idx); }); });
-                    UIFactory.Box(b.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-total * 0.5f + w * 0.5f + i * (w + gap), y), new Vector2(w, 56f));
+                    UIButton b = UIFactory.Button(s, "Case" + (i + 1), (i + 1) + seal, best > 0 ? 11f : 22f, bg, UIFactory.Ink, delegate { Go(delegate { StartLevel(idx); }); });
+                    UIFactory.Box(b.rect, a, pv, new Vector2(left + i * (w + gap), y), new Vector2(w, 56f));
                     b.interactable = unlocked;
                 }
             }
@@ -366,6 +442,18 @@ namespace DeathNotice.Game
                 UIButton b = UIFactory.Button(panel, names[i], names[i], 20f, i == 0 ? Blood : bg, i == 0 ? ScreenInk : UIFactory.Ink, actions[i]);
                 UIFactory.TopRow(b.rect, 70f + i * 60f, 46f, 60f, 60f);
             }
+        }
+    }
+
+    /// <summary>Turns a transform slowly around a vertical axis through a point (the title diorama).</summary>
+    public class Turntable : MonoBehaviour
+    {
+        public Vector3 center;
+        public float degreesPerSecond = 7f;
+
+        private void Update()
+        {
+            transform.RotateAround(center, Vector3.up, degreesPerSecond * Time.unscaledDeltaTime);
         }
     }
 

@@ -19,7 +19,31 @@ namespace DeathNotice.Game
         }
     }
 
-    /// <summary>Procedural particle effects: fire, water, smoke, sparks, splash, bubbles, dust.</summary>
+    /// <summary>Gentle floating bob and roll (boats, buoys, gulls).</summary>
+    public class Bob : MonoBehaviour
+    {
+        public float amount = 0.05f;
+        public float speed = 1f;
+        private Vector3 basePos;
+        private Quaternion baseRot;
+        private float seed;
+
+        private void Start()
+        {
+            basePos = transform.localPosition;
+            baseRot = transform.localRotation;
+            seed = (transform.position.x * 1.7f + transform.position.z) % 6.28f;
+        }
+
+        private void Update()
+        {
+            float t = Time.time * speed + seed;
+            transform.localPosition = basePos + Vector3.up * (Mathf.Sin(t * 1.3f) * amount);
+            transform.localRotation = baseRot * Quaternion.Euler(Mathf.Sin(t * 0.9f) * 3f, 0f, Mathf.Sin(t * 1.1f) * 4f);
+        }
+    }
+
+    /// <summary>Procedural particle effects: fire, water, smoke, chimney, sparks, splash, bubbles, dust.</summary>
     public static class FxLibrary
     {
         private static Gradient Fade(Color a, Color b)
@@ -33,6 +57,11 @@ namespace DeathNotice.Game
 
         private static ParticleSystem Make(string name, Vector3 pos, Transform parent, Vector3 direction)
         {
+            return Make(name, pos, parent, direction, false);
+        }
+
+        private static ParticleSystem Make(string name, Vector3 pos, Transform parent, Vector3 direction, bool additive)
+        {
             var go = new GameObject("fx_" + name);
             go.SetActive(false);
             if (parent != null) go.transform.SetParent(parent, false);
@@ -44,7 +73,7 @@ namespace DeathNotice.Game
             ParticleSystemRenderer r = go.GetComponent<ParticleSystemRenderer>();
             if (r != null)
             {
-                r.sharedMaterial = Mats.Particle();
+                r.sharedMaterial = additive ? Mats.ParticleAdd() : Mats.Particle();
                 r.renderMode = ParticleSystemRenderMode.Billboard;
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 r.receiveShadows = false;
@@ -90,16 +119,16 @@ namespace DeathNotice.Game
             {
                 case "fire":
                 {
-                    ps = Make(kind, pos, parent, Vector3.up);
+                    ps = Make(kind, pos, parent, Vector3.up, true);
                     main = ps.main;
                     main.loop = true;
                     main.startLifetime = new ParticleSystem.MinMaxCurve(0.45f, 0.9f);
                     main.startSpeed = new ParticleSystem.MinMaxCurve(0.6f, 1.3f);
                     main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.4f);
-                    main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.85f, 0.3f), new Color(1f, 0.4f, 0.12f));
+                    main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.8f, 0.3f, 0.8f), new Color(1f, 0.38f, 0.1f, 0.7f));
                     main.gravityModifier = -0.05f;
                     em = ps.emission;
-                    em.rateOverTime = 38f;
+                    em.rateOverTime = 30f;
                     sh = ps.shape;
                     sh.shapeType = ParticleSystemShapeType.Cone;
                     sh.angle = 12f;
@@ -151,9 +180,42 @@ namespace DeathNotice.Game
                     Finish(ps);
                     return ps;
                 }
+                case "chimney":
+                {
+                    // Thin, slow, pale smoke drifting a little to the side. Cheap: 4 particles a second.
+                    ps = Make(kind, pos, parent, Vector3.up);
+                    main = ps.main;
+                    main.loop = true;
+                    main.prewarm = true;
+                    main.startLifetime = new ParticleSystem.MinMaxCurve(2.6f, 3.4f);
+                    main.startSpeed = new ParticleSystem.MinMaxCurve(0.25f, 0.4f);
+                    main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.3f);
+                    main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.85f, 0.84f, 0.86f, 0.55f), new Color(0.7f, 0.7f, 0.75f, 0.45f));
+                    main.maxParticles = 20;
+                    em = ps.emission;
+                    em.rateOverTime = 4f;
+                    sh = ps.shape;
+                    sh.shapeType = ParticleSystemShapeType.Cone;
+                    sh.angle = 8f;
+                    sh.radius = 0.05f;
+                    ParticleSystem.VelocityOverLifetimeModule vel = ps.velocityOverLifetime;
+                    vel.enabled = true;
+                    vel.space = ParticleSystemSimulationSpace.World;
+                    vel.x = new ParticleSystem.MinMaxCurve(0.18f);
+                    vel.y = new ParticleSystem.MinMaxCurve(0f);
+                    vel.z = new ParticleSystem.MinMaxCurve(0.05f);
+                    col = ps.colorOverLifetime;
+                    col.enabled = true;
+                    col.color = new ParticleSystem.MinMaxGradient(Fade(new Color(0.9f, 0.9f, 0.92f), new Color(0.7f, 0.7f, 0.76f)));
+                    sz = ps.sizeOverLifetime;
+                    sz.enabled = true;
+                    sz.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.5f, 1f, 2.2f));
+                    Finish(ps);
+                    return ps;
+                }
                 case "sparks":
                 {
-                    ps = Make(kind, pos, parent, Vector3.up);
+                    ps = Make(kind, pos, parent, Vector3.up, true);
                     main = ps.main;
                     main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.7f);
                     main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 4f);

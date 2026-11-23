@@ -159,7 +159,10 @@ namespace DeathNotice.Tests.EditMode
             Light lampLight = null;
             foreach (Light l in lamp.GetComponentsInChildren<Light>(true)) lampLight = l;
             lamp.LightUp();
-            Assert.AreEqual(Mats.Glow(Color.white).shader, lightPart.GetComponent<Renderer>().sharedMaterial.shader, "light part should glow");
+            // Lit and glowing parts share the toon shader now; "glowing" is _Emission = 1.
+            Material litPart = lightPart.GetComponent<Renderer>().sharedMaterial;
+            Assert.AreEqual(Mats.Glow(Color.white).shader, litPart.shader, "light part should glow");
+            Assert.AreEqual(1f, litPart.GetFloat(Mats.EmissionId), 0.01f, "light part should be self-lit");
             Assert.IsTrue(lampLight.gameObject.activeInHierarchy, "the lamp's own light must still come on");
             Assert.Greater(lamp.spinSpeed, 0f, "the beam must still spin");
             Assert.IsNotNull(lamp.GetComponent<BoxCollider>(), "clue anchor needs a collider for hovering");

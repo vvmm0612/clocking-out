@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace DeathNotice.Game
 {
-    /// <summary>4-6 soft colors per level plus the "other side" tints.</summary>
+    /// <summary>4-6 soft colors per level plus the "other side" tints, and the level's light / sky / fog mood.</summary>
     public class StagePalette
     {
         public Color sky = new Color(0.62f, 0.72f, 0.78f);
@@ -23,7 +23,30 @@ namespace DeathNotice.Game
         public Color peekSky = new Color(0.22f, 0.16f, 0.34f);
         public Color peekAmbient = new Color(0.45f, 0.42f, 0.72f);
         public Color peekTint = new Color(0.42f, 0.25f, 0.75f, 0.22f);
+
+        // ---- mood (GameRoot.ApplyLighting)
+        /// <summary>Sky gradient: top, horizon band (at skyMid 0..1 of the view height), bottom.</summary>
+        public Color skyTop = new Color(0.45f, 0.55f, 0.7f);
+        public Color skyBottom = new Color(0.5f, 0.55f, 0.6f);
+        public float skyMid = 0.42f;
+        /// <summary>Soft glow in the sky (sun / moon / lamp haze); alpha = strength. Position in viewport 0..1.</summary>
+        public Color skyGlow = new Color(1f, 0.9f, 0.7f, 0.25f);
+        public Vector2 skyGlowPos = new Vector2(0.75f, 0.6f);
+        /// <summary>Main light: pitch / yaw (degrees) and intensity. Keep yaw within about -75..25 so the lit faces point at the camera.</summary>
+        public Vector2 sunAngles = new Vector2(48f, -35f);
+        public float sunIntensity = 1.1f;
+        /// <summary>What the shaded side is multiplied by (cool violet, never black).</summary>
+        public Color shadowTint = new Color(0.55f, 0.52f, 0.68f);
+        /// <summary>Rim light colour; alpha = strength.</summary>
+        public Color rim = new Color(1f, 0.95f, 0.85f, 0.35f);
+        /// <summary>Fog / far haze colour; alpha = max amount.</summary>
+        public Color fog = new Color(0.7f, 0.75f, 0.8f, 0.55f);
+        /// <summary>How much the outline leans toward "dark" instead of the darkened albedo.</summary>
+        public float outlineToDark = 0.35f;
     }
+
+    /// <summary>Marks scenery the camera should not frame (open sea, tabletop, far moon).</summary>
+    public class NoFit : MonoBehaviour { }
 
     /// <summary>One continuous rotation or swing driven by an anchor's spin speed.</summary>
     public class Spin
@@ -155,26 +178,39 @@ namespace DeathNotice.Game
         }
     }
 
-    /// <summary>A little capsule person. Root is at the feet; "Visual" child is what gets squashed and spun.</summary>
+    /// <summary>Look of a greybox person: body shape, hat, apron... (models replace all of it).</summary>
+    public enum FigureStyle { Plain, Player, Ghost, Baker, Apprentice, Signalman, Stationmaster, Watchman, Reaper }
+
+    /// <summary>
+    /// A little toy person: round head, stubby body, two dot eyes and a job marker (hat, apron, lantern).
+    /// Root is at the feet; "Visual" child is what gets squashed and spun.
+    /// </summary>
     public class Figure : MonoBehaviour
     {
         public Transform visual;
         public Renderer body;
         public Material mat;
-        /// <summary>All tintable materials (one for the greybox capsule, several for a model).</summary>
+        /// <summary>All tintable materials (one per coloured part for the greybox, several for a model).</summary>
         public readonly List<Material> mats = new List<Material>();
+        /// <summary>Each tintable material's own colour (what ResetPose goes back to).</summary>
+        public readonly List<Color> baseColors = new List<Color>();
         public Color baseColor;
         public float height = 0.7f;
         public bool transparent;
 
         public static Figure Create(Transform parent, string name, Color color, float height, bool transparent, Color? hat)
         {
-            return Create(parent, name, color, height, transparent, hat, null);
+            return Create(parent, name, color, height, transparent, hat, null, transparent ? FigureStyle.Ghost : FigureStyle.Plain);
         }
 
-        /// <summary>With a model (Resources/Models/common/player or death): the model replaces capsule, eyes and hat,
-        /// keeps its textures, and is tinted with "color" (half-transparent for the ghost). No scaling.</summary>
         public static Figure Create(Transform parent, string name, Color color, float height, bool transparent, Color? hat, GameObject model)
+        {
+            return Create(parent, name, color, height, transparent, hat, model, transparent ? FigureStyle.Ghost : FigureStyle.Plain);
+        }
+
+        /// <summary>With a model (Resources/Models/common/player or death): the model replaces the greybox person,
+        /// keeps its textures, and is tinted with "color" (half-transparent for the ghost). No scaling.</summary>
+        public static Figure Create(Transform parent, string name, Color color, float height, bool transparent, Color? hat, GameObject model, FigureStyle style)
         {
             var root = new GameObject(name);
             root.transform.SetParent(parent, false);
@@ -204,61 +240,213 @@ namespace DeathNotice.Game
                     for (int i = 0; i < dst.Length; i++)
                     {
                         Material s = i < src.Length ? src[i] : null;
-                        Material m = transparent ? Mats.TransparentUnique(color) : Mats.LitUnique(color);
+                        Material m = transparent ? Mats.Ghost(color) : Mats.LitUnique(color);
                         if (m != null && s != null && s.mainTexture != null) m.mainTexture = s.mainTexture;
                         dst[i] = m;
                         f.mats.Add(m);
+                        f.baseColors.Add(color);
                     }
                     r.sharedMaterials = dst;
                     r.shadowCastingMode = transparent ? UnityEngine.Rendering.ShadowCastingMode.Off : UnityEngine.Rendering.ShadowCastingMode.On;
+                    MeshFilter mf = r.GetComponent<MeshFilter>();
+                    if (mf != null && !transparent) ToonMesh.Apply(mf);
                     if (f.body == null) f.body = r;
                 }
                 f.mat = f.mats.Count > 0 ? f.mats[0] : null;
                 return f;
             }
 
-            GameObject bodyGo = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            bodyGo.name = "Body";
-            StageKit.RemoveCollider(bodyGo);
-            bodyGo.transform.SetParent(vis.transform, false);
-            bodyGo.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
-            bodyGo.transform.localScale = new Vector3(height * 0.46f, height * 0.5f, height * 0.46f);
-            f.body = bodyGo.GetComponent<Renderer>();
-            f.mat = transparent ? Mats.TransparentUnique(color) : Mats.LitUnique(color);
-            f.body.sharedMaterial = f.mat;
-            f.mats.Add(f.mat);
-            f.body.shadowCastingMode = transparent ? UnityEngine.Rendering.ShadowCastingMode.Off : UnityEngine.Rendering.ShadowCastingMode.On;
-
-            if (!transparent)
-            {
-                Material eyeMat = Mats.Lit(new Color(0.1f, 0.1f, 0.12f));
-                for (int i = -1; i <= 1; i += 2)
-                {
-                    GameObject eye = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    eye.name = "Eye";
-                    StageKit.RemoveCollider(eye);
-                    eye.transform.SetParent(vis.transform, false);
-                    eye.transform.localPosition = new Vector3(i * height * 0.08f, height * 0.74f, -height * 0.21f);
-                    eye.transform.localScale = new Vector3(height * 0.05f, height * 0.08f, height * 0.04f);
-                    eye.GetComponent<Renderer>().sharedMaterial = eyeMat;
-                }
-                if (hat.HasValue)
-                {
-                    GameObject h = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                    h.name = "Hat";
-                    StageKit.RemoveCollider(h);
-                    h.transform.SetParent(vis.transform, false);
-                    h.transform.localPosition = new Vector3(0f, height * 1.02f, 0f);
-                    h.transform.localScale = new Vector3(height * 0.42f, height * 0.06f, height * 0.42f);
-                    h.GetComponent<Renderer>().sharedMaterial = Mats.Lit(hat.Value);
-                }
-            }
+            f.BuildGreybox(color, hat, style);
             return f;
         }
 
+        // ---------------------------------------------------------------- greybox person
+
+        private Material ghostMat;
+
+        private Material PartMat(Color c)
+        {
+            if (transparent)
+            {
+                if (ghostMat == null)
+                {
+                    ghostMat = Mats.Ghost(baseColor);
+                    mats.Add(ghostMat);
+                    baseColors.Add(baseColor);
+                }
+                return ghostMat;
+            }
+            Material m = Mats.LitUnique(c);
+            mats.Add(m);
+            baseColors.Add(c);
+            return m;
+        }
+
+        private GameObject Part(PrimitiveType type, string name, Vector3 pos, Vector3 scale, Vector3 euler, Material m, bool shadows)
+        {
+            GameObject go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            StageKit.RemoveCollider(go);
+            go.transform.SetParent(visual, false);
+            go.transform.localPosition = pos;
+            go.transform.localRotation = Quaternion.Euler(euler);
+            go.transform.localScale = scale;
+            if (!transparent) ToonMesh.Apply(go.GetComponent<MeshFilter>());
+            Renderer r = go.GetComponent<Renderer>();
+            r.sharedMaterial = m;
+            r.shadowCastingMode = shadows && !transparent ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
+            return go;
+        }
+
+        private static Color Skin { get { return new Color(0.98f, 0.86f, 0.74f); } }
+
+        private void BuildGreybox(Color color, Color? hat, FigureStyle style)
+        {
+            float h = height;
+            bool reaper = style == FigureStyle.Reaper;
+            bool wide = style == FigureStyle.Baker;
+            bool small = style == FigureStyle.Apprentice;
+            float bw = wide ? 0.6f : small ? 0.42f : 0.48f;      // body width (x h)
+            float bodyTop = reaper ? 0.66f : 0.56f;
+
+            Material bodyMat = PartMat(color);
+            // Body: a capsule squashed into a stubby bean, feet at 0.
+            GameObject b = Part(PrimitiveType.Capsule, "Body", new Vector3(0f, bodyTop * 0.5f * h, 0f),
+                new Vector3(bw * h, bodyTop * 0.5f * h, bw * 0.9f * h), Vector3.zero, bodyMat, true);
+            body = b.GetComponent<Renderer>();
+            mat = bodyMat;
+
+            float headD = reaper ? 0.42f : 0.46f;
+            float headY = bodyTop + headD * 0.42f;
+            Color headColor = reaper ? color : (transparent ? color : Skin);
+            Part(PrimitiveType.Sphere, "Head", new Vector3(0f, headY * h, 0f), Vector3.one * headD * h, Vector3.zero, PartMat(headColor), true);
+
+            // Little arms
+            for (int i = -1; i <= 1; i += 2)
+            {
+                Part(PrimitiveType.Sphere, "Arm", new Vector3(i * (bw * 0.5f + 0.02f) * h, bodyTop * 0.55f * h, 0f),
+                    new Vector3(0.16f, 0.22f, 0.16f) * h, new Vector3(0f, 0f, i * 18f), bodyMat, true);
+            }
+
+            if (transparent) return;
+
+            float eyeZ = -headD * 0.47f * h;
+            if (reaper)
+            {
+                // Hood (a bigger dark shell) with a black face hole and two glowing eyes.
+                Material hood = PartMat(Color.Lerp(color, Color.black, 0.2f));
+                Part(PrimitiveType.Sphere, "Hood", new Vector3(0f, (headY + 0.03f) * h, 0.03f * h), new Vector3(0.5f, 0.56f, 0.5f) * h, Vector3.zero, hood, true);
+                Part(PrimitiveType.Sphere, "Face", new Vector3(0f, headY * h, -0.12f * h), new Vector3(0.3f, 0.34f, 0.2f) * h, Vector3.zero, Mats.Lit(new Color(0.02f, 0.02f, 0.03f)), false);
+                for (int i = -1; i <= 1; i += 2)
+                    Part(PrimitiveType.Sphere, "Eye", new Vector3(i * 0.065f * h, (headY + 0.01f) * h, -0.21f * h), Vector3.one * 0.06f * h, Vector3.zero, Mats.Glow(new Color(0.62f, 1f, 0.78f)), false);
+                return;
+            }
+
+            Material eyeMat = Mats.Lit(new Color(0.08f, 0.07f, 0.09f));
+            for (int i = -1; i <= 1; i += 2)
+            {
+                Part(PrimitiveType.Sphere, "Eye", new Vector3(i * 0.085f * h, (headY + 0.01f) * h, eyeZ),
+                    new Vector3(0.06f, 0.085f, 0.05f) * h, Vector3.zero, eyeMat, false);
+            }
+
+            Color hc = hat.HasValue ? hat.Value : Color.Lerp(color, Color.black, 0.4f);
+            float top = (headY + headD * 0.5f) * h;
+            switch (style)
+            {
+                case FigureStyle.Player:
+                {
+                    // Red scarf with a tail and a mustard knit cap: the protagonist reads apart from every NPC.
+                    Material scarf = PartMat(new Color(0.84f, 0.24f, 0.2f));
+                    Part(PrimitiveType.Cylinder, "Scarf", new Vector3(0f, bodyTop * h, 0f), new Vector3(bw * 1.02f, 0.045f, bw * 0.95f) * h, Vector3.zero, scarf, true);
+                    Part(PrimitiveType.Cube, "ScarfTail", new Vector3(0.12f * h, (bodyTop - 0.12f) * h, -bw * 0.42f * h), new Vector3(0.09f, 0.2f, 0.04f) * h, new Vector3(0f, 0f, -12f), scarf, true);
+                    Material cap = PartMat(new Color(0.95f, 0.72f, 0.3f));
+                    Part(PrimitiveType.Sphere, "Cap", new Vector3(0f, top - 0.07f * h, 0.01f * h), new Vector3(0.44f, 0.26f, 0.44f) * h, Vector3.zero, cap, true);
+                    Part(PrimitiveType.Sphere, "Pompom", new Vector3(0f, top + 0.05f * h, 0.01f * h), Vector3.one * 0.1f * h, Vector3.zero, cap, true);
+                    break;
+                }
+                case FigureStyle.Baker:
+                {
+                    Material white = PartMat(hat.HasValue ? hat.Value : Color.white);
+                    Part(PrimitiveType.Cylinder, "Toque", new Vector3(0f, top + 0.06f * h, 0f), new Vector3(0.3f, 0.11f, 0.3f) * h, Vector3.zero, white, true);
+                    Part(PrimitiveType.Sphere, "ToquePuff", new Vector3(0f, top + 0.2f * h, 0f), new Vector3(0.4f, 0.22f, 0.4f) * h, Vector3.zero, white, true);
+                    Part(PrimitiveType.Cube, "Apron", new Vector3(0f, bodyTop * 0.4f * h, -bw * 0.43f * h), new Vector3(bw * 0.7f, bodyTop * 0.62f, 0.03f) * h, Vector3.zero, PartMat(new Color(0.86f, 0.84f, 0.78f)), false);
+                    break;
+                }
+                case FigureStyle.Apprentice:
+                {
+                    Material capM = PartMat(hc);
+                    Part(PrimitiveType.Sphere, "Cap", new Vector3(0f, top - 0.06f * h, 0.01f * h), new Vector3(0.44f, 0.22f, 0.44f) * h, Vector3.zero, capM, true);
+                    Part(PrimitiveType.Cube, "Brim", new Vector3(0f, top - 0.1f * h, -0.2f * h), new Vector3(0.3f, 0.03f, 0.16f) * h, Vector3.zero, capM, false);
+                    // Flour sack on the shoulder
+                    Part(PrimitiveType.Sphere, "Sack", new Vector3(0.22f * h, (bodyTop + 0.02f) * h, 0.05f * h), new Vector3(0.3f, 0.2f, 0.22f) * h, new Vector3(0f, 0f, 20f), PartMat(new Color(0.93f, 0.9f, 0.8f)), true);
+                    break;
+                }
+                case FigureStyle.Signalman:
+                {
+                    Material capM = PartMat(hc);
+                    Part(PrimitiveType.Cylinder, "Cap", new Vector3(0f, top - 0.03f * h, 0f), new Vector3(0.44f, 0.05f, 0.44f) * h, Vector3.zero, capM, true);
+                    Part(PrimitiveType.Cube, "Brim", new Vector3(0f, top - 0.06f * h, -0.2f * h), new Vector3(0.28f, 0.025f, 0.14f) * h, Vector3.zero, capM, false);
+                    // Red flag in hand
+                    Part(PrimitiveType.Cube, "FlagStick", new Vector3(0.3f * h, bodyTop * 0.75f * h, -0.05f * h), new Vector3(0.025f, 0.4f, 0.025f) * h, Vector3.zero, PartMat(new Color(0.4f, 0.3f, 0.22f)), false);
+                    Part(PrimitiveType.Cube, "Flag", new Vector3(0.39f * h, (bodyTop * 0.75f + 0.14f) * h, -0.05f * h), new Vector3(0.16f, 0.11f, 0.015f) * h, Vector3.zero, PartMat(new Color(0.85f, 0.22f, 0.2f)), false);
+                    break;
+                }
+                case FigureStyle.Stationmaster:
+                {
+                    Material capM = PartMat(hc);
+                    Part(PrimitiveType.Cylinder, "Cap", new Vector3(0f, top + 0.02f * h, 0f), new Vector3(0.46f, 0.07f, 0.46f) * h, Vector3.zero, capM, true);
+                    Part(PrimitiveType.Cube, "Visor", new Vector3(0f, top - 0.05f * h, -0.22f * h), new Vector3(0.32f, 0.025f, 0.14f) * h, new Vector3(-12f, 0f, 0f), PartMat(new Color(0.08f, 0.08f, 0.1f)), false);
+                    Part(PrimitiveType.Cube, "Band", new Vector3(0f, top, -0.225f * h), new Vector3(0.3f, 0.04f, 0.02f) * h, Vector3.zero, Mats.Glow(new Color(0.95f, 0.78f, 0.35f)), false);
+                    Material gold = Mats.Lit(new Color(0.95f, 0.78f, 0.35f));
+                    for (int i = 0; i < 3; i++)
+                        Part(PrimitiveType.Sphere, "Button", new Vector3(0f, (0.16f + i * 0.12f) * h, -bw * 0.45f * h), Vector3.one * 0.045f * h, Vector3.zero, gold, false);
+                    break;
+                }
+                case FigureStyle.Watchman:
+                {
+                    Material hatM = PartMat(hc);
+                    Part(PrimitiveType.Cylinder, "HatBrim", new Vector3(0f, top - 0.06f * h, 0f), new Vector3(0.66f, 0.02f, 0.66f) * h, Vector3.zero, hatM, true);
+                    Part(PrimitiveType.Cylinder, "HatCrown", new Vector3(0f, top + 0.02f * h, 0f), new Vector3(0.36f, 0.08f, 0.36f) * h, Vector3.zero, hatM, true);
+                    // Long coat hem
+                    Part(PrimitiveType.Cylinder, "Coat", new Vector3(0f, 0.1f * h, 0f), new Vector3(bw * 1.12f, 0.1f, bw * 1.0f) * h, Vector3.zero, PartMat(Color.Lerp(color, Color.black, 0.2f)), true);
+                    // Hand lantern
+                    Part(PrimitiveType.Cube, "Lantern", new Vector3(0.33f * h, 0.2f * h, -0.06f * h), new Vector3(0.1f, 0.14f, 0.1f) * h, Vector3.zero, Mats.Glow(new Color(1f, 0.78f, 0.4f)), false);
+                    break;
+                }
+                default:
+                {
+                    if (hat.HasValue)
+                    {
+                        Part(PrimitiveType.Cylinder, "Hat", new Vector3(0f, top - 0.02f * h, 0f), new Vector3(0.42f, 0.05f, 0.42f) * h, Vector3.zero, PartMat(hat.Value), true);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------- tint
+
+        /// <summary>Every tintable part set to one colour.</summary>
         public void SetColor(Color c)
         {
             for (int i = 0; i < mats.Count; i++) Mats.SetColor(mats[i], c);
+        }
+
+        /// <summary>Each part moves from its own colour toward a, then toward b (burn: toward red-hot, then ash).</summary>
+        public void Blend(Color a, float ka, Color b, float kb)
+        {
+            for (int i = 0; i < mats.Count; i++)
+            {
+                Color own = i < baseColors.Count ? baseColors[i] : baseColor;
+                Color c = Color.Lerp(Color.Lerp(own, a, ka), b, kb);
+                c.a = own.a;
+                Mats.SetColor(mats[i], c);
+            }
+        }
+
+        public void RestoreColors()
+        {
+            for (int i = 0; i < mats.Count; i++) Mats.SetColor(mats[i], i < baseColors.Count ? baseColors[i] : baseColor);
         }
 
         public void ResetPose()
@@ -267,7 +455,7 @@ namespace DeathNotice.Game
             visual.localPosition = Vector3.zero;
             visual.localRotation = Quaternion.identity;
             visual.localScale = Vector3.one;
-            SetColor(baseColor);
+            RestoreColors();
         }
 
         /// <summary>Turn (yaw only) to face a world point.</summary>
@@ -296,6 +484,24 @@ namespace DeathNotice.Game
         public float camPitch = 30f;
         public float camYaw = -20f;
         public Vector3 npcOffset = new Vector3(0.42f, 0f, 0.18f);
+        /// <summary>What the camera frames (CameraRig.FitTo): the diorama without sea, table or sky props.</summary>
+        public Bounds fitBounds;
+        public bool hasFitBounds;
+        /// <summary>Fraction of the 3D view's height the framed diorama should fill.</summary>
+        public float camFill = 0.8f;
+
+        /// <summary>Bounds of every visible renderer except particles and objects marked <see cref="NoFit"/>.</summary>
+        public void ComputeFitBounds()
+        {
+            hasFitBounds = false;
+            foreach (Renderer r in GetComponentsInChildren<Renderer>(false))
+            {
+                if (r == null || !r.enabled || r is ParticleSystemRenderer) continue;
+                if (r.GetComponentInParent<NoFit>() != null) continue;
+                if (!hasFitBounds) { fitBounds = r.bounds; hasFitBounds = true; }
+                else fitBounds.Encapsulate(r.bounds);
+            }
+        }
 
         private readonly Dictionary<string, AnchorTag> anchors = new Dictionary<string, AnchorTag>();
         private readonly Dictionary<string, StateHandler> states = new Dictionary<string, StateHandler>();

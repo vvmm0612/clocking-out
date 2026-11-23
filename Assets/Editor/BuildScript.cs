@@ -15,6 +15,7 @@ public static class BuildScript
 
     public static void BuildWebGL()
     {
+        VisualSetup.Run(); // toon material templates + URP shadow settings must exist before the build
         ApplyWebGLSettings();
 
         var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();

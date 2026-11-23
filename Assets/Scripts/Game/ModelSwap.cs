@@ -85,7 +85,7 @@ namespace DeathNotice.Game
             return inst;
         }
 
-        /// <summary>Keeps each material's color and main texture but moves it onto the shipped Lit template.</summary>
+        /// <summary>Keeps each material's color and main texture but moves it onto the shipped toon template (cel shading + outline).</summary>
         public static void ConvertMaterials(GameObject go)
         {
             foreach (Renderer r in go.GetComponentsInChildren<Renderer>(true))
@@ -95,6 +95,9 @@ namespace DeathNotice.Game
                 var dst = new Material[Mathf.Max(1, src.Length)];
                 for (int i = 0; i < dst.Length; i++) dst[i] = Mats.FromModel(i < src.Length ? src[i] : null);
                 r.sharedMaterials = dst;
+                // Smoothed normals for the toon outline (only possible for readable meshes; others use their normals).
+                MeshFilter mf = r.GetComponent<MeshFilter>();
+                if (mf != null) ToonMesh.Apply(mf);
             }
         }
 

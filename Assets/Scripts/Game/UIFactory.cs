@@ -293,6 +293,7 @@ namespace DeathNotice.Game
             Stretch(b.label.rect, 6f, 2f, 6f, 2f);
 
             b.image.gameObject.AddComponent<HoverSfx>();
+            b.image.gameObject.AddComponent<ButtonFx>();
             b.button.onClick.AddListener(delegate { AudioManager.PlaySfx("click"); });
             if (onClick != null) b.button.onClick.AddListener(onClick);
             return b;
@@ -450,6 +451,56 @@ namespace DeathNotice.Game
             img.sprite = Circle();
             Box(img.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), center, new Vector2(diameter, diameter));
             return img;
+        }
+
+        /// <summary>
+        /// Turns a flat panel into paper: tiled grain multiplied by its colour, plus a soft darkening toward the
+        /// edges (an overlay child, so add it before the panel's content).
+        /// </summary>
+        public static void MakePaper(Image img, float edgeAlpha)
+        {
+            if (img == null) return;
+            img.sprite = UITextures.PaperGrain();
+            img.type = Image.Type.Tiled;
+            img.pixelsPerUnitMultiplier = 1.4f;
+            Image e = Panel(img.rectTransform, "EdgeShade", new Color(0.36f, 0.25f, 0.14f, edgeAlpha), false);
+            e.sprite = UITextures.EdgeShade();
+            e.type = Image.Type.Sliced;
+            e.pixelsPerUnitMultiplier = 0.6f;
+            Stretch(e.rectTransform, 0f, 0f, 0f, 0f);
+        }
+
+        /// <summary>Heading rule: a thick line over a thin one, with a diamond at each end.</summary>
+        public static void OrnateRule(RectTransform parent, float top, float inset, Color c)
+        {
+            Image thick = Panel(parent, "Rule", c, false);
+            TopRow(thick.rectTransform, top, 2f, inset, inset);
+            Image thin = Panel(parent, "RuleThin", new Color(c.r, c.g, c.b, c.a * 0.7f), false);
+            TopRow(thin.rectTransform, top + 4f, 1f, inset + 10f, inset + 10f);
+            for (int i = 0; i < 2; i++)
+            {
+                Image d = Panel(parent, "RuleDiamond", c, false);
+                d.sprite = UITextures.Diamond();
+                d.rectTransform.anchorMin = d.rectTransform.anchorMax = new Vector2(i, 1f);
+                d.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                d.rectTransform.sizeDelta = new Vector2(9f, 9f);
+                d.rectTransform.anchoredPosition = new Vector2(i == 0 ? inset : -inset, -top - 1f);
+            }
+        }
+
+        /// <summary>A translucent dark pill behind a label (HUD text over bright skies).</summary>
+        public static Image Backing(RectTransform label, Color c, Vector2 pad)
+        {
+            Image bg = Panel(label.parent, label.name + "Backing", c, false);
+            RectTransform r = bg.rectTransform;
+            r.SetSiblingIndex(label.GetSiblingIndex());
+            r.anchorMin = label.anchorMin;
+            r.anchorMax = label.anchorMax;
+            r.pivot = label.pivot;
+            r.anchoredPosition = label.anchoredPosition + new Vector2(-pad.x * (1f - 2f * label.pivot.x) * 0f, 0f);
+            r.offsetMin = label.offsetMin - pad;
+            r.offsetMax = label.offsetMax + pad;
+            return bg;
         }
 
         public static void DestroyChildren(Transform t)

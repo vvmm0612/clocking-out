@@ -126,11 +126,57 @@ namespace DeathNotice.Game
             Sun.type = LightType.Directional;
             Sun.intensity = 1.1f;
             Sun.shadows = LightShadows.Soft;
-            Sun.shadowStrength = 0.6f;
+            Sun.shadowStrength = 1f; // the toon shader turns "in shadow" into the level's shade colour, never black
+            Sun.shadowBias = 0.04f;
+            Sun.shadowNormalBias = 0.35f;
 
-            RenderSettings.fog = false;
+            BuildSky(camGo.transform);
+
+            RenderSettings.fog = false; // the toon shaders do their own distance / height haze (_CO_Fog*)
             RenderSettings.ambientMode = AmbientMode.Flat;
             SetAmbient(new Color(0.5f, 0.5f, 0.55f));
+            ApplyLighting(new StagePalette(), false);
+        }
+
+        private Material skyMat;
+
+        /// <summary>Backdrop: a unit quad the Sky shader maps straight onto the viewport (drawn first, behind everything).</summary>
+        private void BuildSky(Transform camT)
+        {
+            skyMat = Mats.Sky();
+            if (skyMat == null) return;
+            var go = new GameObject("Sky");
+            go.transform.SetParent(camT, false);
+            go.transform.localPosition = Vector3.forward * 10f;
+            var mesh = new Mesh();
+            mesh.name = "SkyQuad";
+            mesh.vertices = new[] { new Vector3(-1, -1, 0), new Vector3(1, -1, 0), new Vector3(-1, 1, 0), new Vector3(1, 1, 0) };
+            mesh.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1) };
+            mesh.triangles = new[] { 0, 2, 1, 2, 3, 1 };
+            mesh.bounds = new Bounds(Vector3.zero, Vector3.one * 100000f); // never culled
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            MeshRenderer mr = go.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = skyMat;
+            mr.shadowCastingMode = ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+        }
+
+        private static Vector4 Lin(Color c) { Color l = c.linear; return new Vector4(l.r, l.g, l.b, c.a); }
+
+        private static readonly int ShadowTintId = Shader.PropertyToID("_CO_ShadowTint");
+        private static readonly int RimId = Shader.PropertyToID("_CO_RimColor");
+        private static readonly int FogColorId = Shader.PropertyToID("_CO_FogColor");
+        private static readonly int FogParamsId = Shader.PropertyToID("_CO_FogParams");
+        private static readonly int OutlineTintId = Shader.PropertyToID("_CO_OutlineTint");
+        private static readonly int OutlinePxId = Shader.PropertyToID("_CO_OutlinePx");
+
+        /// <summary>Haze distances follow the camera distance; height haze swallows anything below the stand.</summary>
+        public void SetFogRange(float cameraDistance, float groundY)
+        {
+            float d = Mathf.Max(4f, cameraDistance);
+            Shader.SetGlobalVector(FogParamsId, new Vector4(d * 1.05f, d * 2.4f, groundY - 0.9f, 2.5f));
+            var urp = GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+            if (urp != null) urp.shadowDistance = Mathf.Clamp(d * 1.8f, 15f, 60f);
         }
 
         public void SetAmbient(Color c)
@@ -146,12 +192,40 @@ namespace DeathNotice.Game
         public void ApplyLighting(StagePalette p, bool otherSide)
         {
             if (p == null) return;
-            if (Cam != null) Cam.backgroundColor = otherSide ? p.peekSky : p.sky;
+            if (Cam != null) Cam.backgroundColor = otherSide ? p.peekSky : p.skyBottom;
             SetAmbient(otherSide ? p.peekAmbient : p.ambient);
             if (Sun != null)
             {
-                Sun.color = otherSide ? new Color(0.62f, 0.55f, 0.95f) : p.sun;
-                Sun.intensity = otherSide ? 0.55f : 1.1f;
+                Sun.color = otherSide ? new Color(0.72f, 0.62f, 1f) : p.sun;
+                Sun.intensity = otherSide ? 0.75f : p.sunIntensity;
+                Sun.transform.rotation = Quaternion.Euler(p.sunAngles.x, p.sunAngles.y, 0f);
+            }
+
+            // "The other side" (Shift peek): everything goes violet and dreamy, same layout.
+            Color shadow = otherSide ? new Color(0.42f, 0.32f, 0.66f) : p.shadowTint;
+            Color rim = otherSide ? new Color(0.85f, 0.7f, 1f, 0.8f) : p.rim;
+            Color top = otherSide ? new Color(0.16f, 0.09f, 0.3f) : p.skyTop;
+            Color mid = otherSide ? new Color(0.5f, 0.32f, 0.7f) : p.sky;
+            Color bottom = otherSide ? new Color(0.24f, 0.14f, 0.38f) : p.skyBottom;
+            Color glow = otherSide ? new Color(0.85f, 0.6f, 1f, 0.35f) : p.skyGlow;
+            Color fog = otherSide ? new Color(0.4f, 0.27f, 0.6f, 0.6f) : p.fog;
+
+            Shader.SetGlobalVector(ShadowTintId, Lin(shadow));
+            Shader.SetGlobalVector(RimId, Lin(rim));
+            Shader.SetGlobalVector(FogColorId, Lin(fog));
+            Color dark = p.dark;
+            Shader.SetGlobalVector(OutlineTintId, new Vector4(dark.linear.r, dark.linear.g, dark.linear.b, p.outlineToDark));
+            Shader.SetGlobalFloat(OutlinePxId, 1.5f);
+            if (Shader.GetGlobalVector(FogParamsId) == Vector4.zero) SetFogRange(15f, -1f);
+
+            if (skyMat != null)
+            {
+                skyMat.SetColor("_Top", top);
+                skyMat.SetColor("_Mid", mid);
+                skyMat.SetColor("_Bottom", bottom);
+                skyMat.SetFloat("_MidHeight", p.skyMid);
+                skyMat.SetColor("_Glow", glow);
+                skyMat.SetVector("_GlowPos", new Vector4(p.skyGlowPos.x, p.skyGlowPos.y, 0f, 0f));
             }
         }
 

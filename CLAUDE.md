@@ -18,13 +18,14 @@ Game Off 2026（主题 SHIFT）参赛作品。死神把你的死亡通知单丢�
 - **不能打开 Unity 图形界面。** 一律用：
   - `powershell -ExecutionPolicy Bypass -File tools\compile.ps1`（编译，日志 `Logs/compile.log`）
   - `powershell -ExecutionPolicy Bypass -File tools\test.ps1`（EditMode 测试，结果 `TestResults/EditMode.xml`）
+  - `powershell -ExecutionPolicy Bypass -File tools\test-playmode.ps1`（PlayMode 实测：从标题自动通关到片尾，带 GPU，结果 `TestResults/PlayMode.xml`，截图和报告写到 `Logs/playtest/`）
   - `powershell -ExecutionPolicy Bypass -File tools\build-webgl.ps1`（输出 `Builds/WebGL`；路径里有中文导致 IL2CPP 报错时加 `-Subst`）
 - 同一时间只能有一个 Unity 实例（脚本会检查 `Temp\UnityLockfile`），别和其他 Agent 抢着跑。
 - 改完代码至少保证 compile 通过；动了 Core 或关卡就要跑 test。
 
 ## 运行时搭建
 - 场景、相机、灯光、UI 全部由代码在运行时搭建（GameRoot → GameFlow → StageBuilder / UIFactory）。不要手工往 .unity 场景或 prefab 里摆东西。
-- 正式模型按锚点名替换灰盒：`Assets/Resources/Models/<levelId>/<anchor>.fbx`（见 `docs/art-brief.md`）。替换时会清掉该锚点的旋转、开关、点灯回调，带动画的锚点要另行处理。
+- 正式模型按锚点名替换灰盒：`Assets/Resources/Models/<levelId>/<anchor>.fbx`（见 `docs/art-brief.md`）。替换只换外观，`ModelSwap.cs` 会保留该锚点的旋转、开关、点灯行为（按子物体名 `spin` / `toggle` / `light` 挂接）。
 - **构建里 `Shader.Find` 会返回 null**（没被引用的 shader 会被裁掉）。材质一律通过 `Mats` 从 `Resources/Materials` 里的模板复制；新增 shader 时也得在 ProjectSetup 里生成模板材质放进 Resources，或者加到 Always Included Shaders。
 - 音频按名字从 `Resources/Audio/Sfx|Bgm` 加载，缺了就静默跳过。
 

@@ -49,6 +49,7 @@ namespace DeathNotice.Game
         private int peekVersion = -1;
         private bool shiftOnlyLevel;
         private Tutorial tutorial;
+        private ReaperUI reaper;
         private const float CaptionHeight = 104f;
 
         public bool InLevel { get { return phase != Phase.Idle; } }
@@ -77,6 +78,10 @@ namespace DeathNotice.Game
             form.onChanged = delegate { if (peeking) ApplyPeek(); };
 
             hud = root.StageOverlay;
+            // Dark fade along the top of the 3D view: the white HUD text stays readable on pale skies.
+            Image topShade = UIFactory.Panel(hud, "TopShade", new Color(0.06f, 0.05f, 0.08f, 0.62f), false);
+            topShade.sprite = UITextures.FadeDown();
+            UIFactory.TopRow(topShade.rectTransform, 0f, 78f, 0f, 0f);
             peekTint = UIFactory.Panel(hud, "PeekTint", new Color(0.4f, 0.25f, 0.75f, 0.22f), false);
             UIFactory.Stretch(peekTint.rectTransform, 0f, 0f, 0f, 0f);
             peekTint.gameObject.SetActive(false);
@@ -93,13 +98,18 @@ namespace DeathNotice.Game
             AddShadow(caseLabel);
 
             // Bottom-left corner; the caption bar covers it during playback, when Shift does nothing anyway.
-            hintLabel = UIFactory.Text(hud, "Hint", "Hold SHIFT to peek at the other side", 16f, new Color(1f, 0.97f, 0.9f, 0.95f), TextAnchor.MiddleLeft, true);
-            UIFactory.Box(hintLabel.rect, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(16f, 16f), new Vector2(460f, 26f));
+            hintLabel = UIFactory.Text(hud, "Hint", "Hold SHIFT to peek at the other side", 16f, new Color(1f, 0.97f, 0.9f, 0.98f), TextAnchor.MiddleCenter, true);
+            UIFactory.Box(hintLabel.rect, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(16f, 16f), new Vector2(330f, 28f));
             AddShadow(hintLabel);
+            // Translucent pill behind it (it sits on the brightest part of most skies / seas).
+            Image hintBack = UIFactory.Panel(hintLabel.rect, "Backing", new Color(0.07f, 0.06f, 0.09f, 0.55f), false);
+            UIFactory.Stretch(hintBack.rectTransform, -2f, -1f, -2f, -1f);
+            hintBack.rectTransform.SetAsFirstSibling();
 
             peekLabel = UIFactory.Text(hud, "PeekLabel", "", 26f, new Color(0.92f, 0.88f, 1f, 1f), TextAnchor.MiddleCenter, true);
             UIFactory.TopRow(peekLabel.rect, 64f, 36f, 20f, 20f);
             AddShadow(peekLabel);
+            AddOutline(peekLabel);
             peekSub = UIFactory.Text(hud, "PeekSub", "", 16f, new Color(0.92f, 0.88f, 1f, 0.95f), TextAnchor.MiddleCenter, false);
             UIFactory.TopRow(peekSub.rect, 100f, 48f, 30f, 30f);
             AddShadow(peekSub);
@@ -148,7 +158,19 @@ namespace DeathNotice.Game
             beats.rig = root.Rig;
             beats.showCaption = ShowCaption;
 
+            // The Reaper stands at the bottom-left corner of the paper, facing it; drawn over the paper's
+            // margin so his stamping arm comes down onto the form.
+            reaper = ReaperUI.Create(root.PaperArea, 196f, new Vector2(0f, 0f), new Vector2(0.74f, 0f), new Vector2(0f, -6f), true);
+
             SetHudVisible(false);
+        }
+
+        private static void AddOutline(Label l)
+        {
+            if (l == null || l.Graphic == null) return;
+            Outline o = l.gameObject.AddComponent<Outline>();
+            o.effectColor = new Color(0.08f, 0.05f, 0.14f, 0.6f);
+            o.effectDistance = new Vector2(1.2f, -1.2f);
         }
 
         private static void AddShadow(Label l)
@@ -162,6 +184,8 @@ namespace DeathNotice.Game
         private void SetHudVisible(bool on)
         {
             if (hud != null) hud.gameObject.SetActive(on);
+            // The paper only exists inside a case (the title screen shows the 3D scene behind it).
+            if (root != null && root.PaperArea != null && root.PaperArea.gameObject.activeSelf != on) root.PaperArea.gameObject.SetActive(on);
         }
 
         // ---------------------------------------------------------------- lifecycle
@@ -183,6 +207,7 @@ namespace DeathNotice.Game
             RebuildStage();
             phase = Phase.Editing;
             clues.SetActive(true);
+            if (reaper != null) reaper.Show(true);
             AudioManager.PlayBgm("level");
             AudioManager.PlaySfx("page");
             tutorial.BeginLevel(lvl, index, shiftOnlyLevel);
@@ -237,8 +262,26 @@ namespace DeathNotice.Game
                 stage.level = level;
             }
             root.ApplyLighting(stage.palette, false);
-            root.Rig.Frame(stage.camFocus, stage.camDistance, stage.camPitch, stage.camYaw);
+            FrameStage();
             clues.Bind(stage, rejections);
+        }
+
+        /// <summary>Camera fits the diorama (the layout's pitch / yaw, auto distance); haze follows the distance.</summary>
+        private void FrameStage()
+        {
+            if (stage == null) return;
+            root.Rig.fullScreen = false;
+            if (stage.hasFitBounds)
+            {
+                root.Rig.window = Rect.MinMaxRect(-0.92f, -0.86f, 0.92f, 0.8f);
+                root.Rig.FitTo(stage.fitBounds, stage.camPitch, stage.camYaw, stage.camFill);
+                root.SetFogRange(root.Rig.Distance, stage.fitBounds.min.y);
+            }
+            else
+            {
+                root.Rig.Frame(stage.camFocus, stage.camDistance, stage.camPitch, stage.camYaw);
+                root.SetFogRange(stage.camDistance, -1f);
+            }
         }
 
         // ---------------------------------------------------------------- update
@@ -388,6 +431,7 @@ namespace DeathNotice.Game
             ShowCaption("");
             SetCaptionBar(true);
             skipButton.gameObject.SetActive(true);
+            if (reaper != null) reaper.Show(false); // the Skip button lives in his corner during playback
             AudioManager.PlaySfx("submit");
             SimResult captured = result;
             beats.Play(stage, result, delegate { OnPlaybackDone(captured); });
@@ -399,6 +443,7 @@ namespace DeathNotice.Game
             captionBar.gameObject.SetActive(on);
             float h = root.CanvasRect != null ? root.CanvasRect.rect.height : GameRoot.RefHeight;
             if (root.Rig != null) root.Rig.bottomInset = on && h > 1f ? CaptionHeight / h : 0f;
+            if (reaper != null) reaper.SetBaseY(on ? CaptionHeight - 14f : -6f);
         }
 
         private void ShowCaption(string text)
@@ -417,27 +462,51 @@ namespace DeathNotice.Game
         private IEnumerator StampRoutine(string word, Color color)
         {
             form.ClearStamps();
+            // Death raises the stamp...
+            if (reaper != null) { reaper.Show(true); reaper.Stamp(0.24f, 0.14f); }
+            float t = 0f;
+            while (t < 0.2f) { t += Time.deltaTime; yield return null; }
+
+            // ...and brings it down: the stamp drops in, accelerating, then squashes on impact.
             CanvasGroup g;
             RectTransform s = ResultUI.Stamp(form.StampRoot, word, color, out g);
-            float t = 0f;
-            const float dur = 0.18f;
+            Quaternion rest = s != null ? s.localRotation : Quaternion.identity;
+            t = 0f;
+            const float dur = 0.15f;
             while (t < dur)
             {
                 float k = t / dur;
-                if (s != null) s.localScale = Vector3.one * Mathf.Lerp(2.4f, 1f, k * k);
-                if (g != null) g.alpha = k;
+                float e = k * k;
+                if (s != null)
+                {
+                    s.localScale = Vector3.one * Mathf.Lerp(2.6f, 1f, e);
+                    s.localRotation = rest * Quaternion.Euler(0f, 0f, (1f - e) * 8f);
+                }
+                if (g != null) g.alpha = Mathf.Clamp01(k * 2.5f);
+                t += Time.deltaTime;
+                yield return null;
+            }
+            if (s != null) { s.localScale = Vector3.one; s.localRotation = rest; }
+            if (g != null) g.alpha = 1f;
+            AudioManager.PlaySfx("stamp");
+            root.Rig.Shake(0.22f);
+            UIShake.Kick(form.Root, 7f, 0.32f);
+            t = 0f;
+            while (t < 0.12f)
+            {
+                float k = t / 0.12f;
+                float sq = 1f - Mathf.Sin(k * Mathf.PI) * 0.07f;
+                if (s != null) s.localScale = new Vector3(2f - sq, sq, 1f);
                 t += Time.deltaTime;
                 yield return null;
             }
             if (s != null) s.localScale = Vector3.one;
-            if (g != null) g.alpha = 1f;
-            AudioManager.PlaySfx("stamp");
-            root.Rig.Shake(0.15f);
         }
 
         private IEnumerator ApproveRoutine(SimResult result)
         {
             yield return StampRoutine("APPROVED", ResultUI.ApprovedColor);
+            UIConfetti.Burst(form.StampRoot, Vector2.zero, 34); // under the stamp root: cleared with the stamps
             AudioManager.PlaySfx("approve");
             if (level != null) Progress.RecordApproved(levelIndex, level.id, submissions);
             yield return new WaitForSeconds(1.0f);
@@ -489,6 +558,7 @@ namespace DeathNotice.Game
             form.SetLocked(false);
             phase = Phase.Editing;
             clues.SetActive(true);
+            if (reaper != null) reaper.Show(true);
             AudioManager.PlaySfx("page");
         }
 

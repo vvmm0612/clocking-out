@@ -75,6 +75,7 @@ namespace DeathNotice.Game
             paper = UIFactory.Panel(parent, "Paper", PaperNormal, true);
             Root = paper.rectTransform;
             UIFactory.Stretch(Root, 12f, 12f, 14f, 14f);
+            UIFactory.MakePaper(paper, 0.32f);
             group = paper.gameObject.AddComponent<CanvasGroup>();
             glow = paper.gameObject.AddComponent<Outline>();
             glow.effectColor = new Color(1f, 0.8f, 0.3f, 0.9f);
@@ -86,12 +87,12 @@ namespace DeathNotice.Game
 
             header = UIFactory.Text(Root, "Header", "NOTICE OF DEATH — Form 1-D", 25f, UIFactory.Ink, TextAnchor.MiddleCenter, true);
             UIFactory.TopRow(header.rect, 16f, 34f, 16f, 16f);
-            Image rule = UIFactory.Panel(Root, "Rule", UIFactory.Ink, false);
-            UIFactory.TopRow(rule.rectTransform, 54f, 2f, 22f, 22f);
+            UIFactory.OrnateRule(Root, 52f, 22f, UIFactory.Ink);
             caseLine = UIFactory.Text(Root, "Case", "", 14f, UIFactory.InkSoft, TextAnchor.MiddleCenter, false);
-            UIFactory.TopRow(caseLine.rect, 58f, 20f, 16f, 16f);
+            UIFactory.TopRow(caseLine.rect, 59f, 20f, 16f, 16f);
+            // Level 6: its own line on the right of the name caption, well clear of the "Case file" line.
             supervisorLine = UIFactory.Text(Root, "Supervisor", "SUPERVISOR COPY", 13f, new Color(0.65f, 0.42f, 0.05f, 1f), TextAnchor.MiddleRight, true);
-            UIFactory.TopRow(supervisorLine.rect, 58f, 20f, 16f, 22f);
+            UIFactory.TopRow(supervisorLine.rect, 84f, 16f, 200f, 22f);
             supervisorLine.SetActive(false);
 
             nameCaption = UIFactory.Text(Root, "NameCaption", "NAME OF THE DECEASED", 12f, UIFactory.InkSoft, TextAnchor.MiddleLeft, true);

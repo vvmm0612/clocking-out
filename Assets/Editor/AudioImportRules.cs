@@ -5,7 +5,7 @@ using UnityEngine;
 /// One place for audio import settings, applied on every (re)import of files under
 /// Assets/Resources/Audio:
 ///   Bgm/ : Vorbis, quality 0.4, Compressed In Memory (Streaming is not available on WebGL), stereo kept,
-///          preloaded (an unloaded clip starts late on WebGL).
+///          preloaded.
 ///   Sfx/ : Vorbis, quality 0.5, Decompress On Load (no decode hitch on play), forced to mono.
 /// WebGL re-encodes to AAC at build time using the same quality value.
 /// Bump <see cref="Version"/> after changing the rules so Unity reimports the clips.
@@ -14,7 +14,7 @@ using UnityEngine;
 /// </summary>
 public class AudioImportRules : AssetPostprocessor
 {
-    const uint Version = 2;
+    const uint Version = 5;
     const string Root = "Assets/Resources/Audio/";
 
     public override uint GetVersion() { return Version; }
@@ -41,8 +41,10 @@ public class AudioImportRules : AssetPostprocessor
         {
             s.loadType = AudioClipLoadType.CompressedInMemory;
             s.quality = 0.4f;
-            // Preloaded: on WebGL an unloaded clip logs "Trying to get length of sound which is not loaded"
-            // and starts late; the data ships in the .data file anyway.
+            // Preloaded. Note: on WebGL the engine logs "Trying to get length of sound which is not loaded" once
+            // for every AudioClip object loaded while the browser is still decoding it (tested: preload on/off and
+            // Load In Background on/off all log it). AudioManager therefore loads clips lazily (only the two
+            // played at the first click log it) and never plays a clip whose loadState is not Loaded.
             s.preloadAudioData = true;
             importer.forceToMono = false;
             importer.loadInBackground = false;
@@ -51,7 +53,7 @@ public class AudioImportRules : AssetPostprocessor
         {
             s.loadType = AudioClipLoadType.DecompressOnLoad;
             s.quality = 0.5f;
-            s.preloadAudioData = true;
+            s.preloadAudioData = true; // see above
             importer.forceToMono = true;
             importer.loadInBackground = false;
         }

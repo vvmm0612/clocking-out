@@ -26,6 +26,7 @@ public static class ProjectSetup
         AssignRenderPipeline(urp);
         ImportTmpEssentials();
         CreateRuntimeMaterials();
+        VisualSetup.Run();
         CreateMainScene();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -189,15 +190,12 @@ public static class ProjectSetup
         if (!AssetDatabase.IsValidFolder(MaterialsDir))
             AssetDatabase.CreateFolder("Assets/Resources", "Materials");
 
-        CreateMaterial("Lit", "Universal Render Pipeline/Lit", m =>
+        // The URP Lit / Unlit templates were replaced by the project's toon shaders (VisualSetup).
+        foreach (string old in new[] { "Lit", "Unlit" })
         {
-            if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.15f);
-            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
-        });
-        CreateMaterial("Unlit", "Universal Render Pipeline/Unlit", m =>
-        {
-            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
-        });
+            string oldPath = MaterialsDir + "/" + old + ".mat";
+            if (AssetDatabase.LoadAssetAtPath<Material>(oldPath) != null) AssetDatabase.DeleteAsset(oldPath);
+        }
         CreateMaterial("Sprite", "Sprites/Default", m =>
         {
             if (m.HasProperty("_Color")) m.SetColor("_Color", Color.white);

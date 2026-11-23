@@ -42,15 +42,30 @@ namespace DeathNotice.Game
         {
             RectTransform rt = UIFactory.Rect(parent, "Stamp_" + word);
             UIFactory.Stretch(rt, 0f, 0f, 0f, 0f);
-            rt.localRotation = Quaternion.Euler(0f, 0f, 11f);
+            // Never quite straight: 7-13 degrees either way.
+            float tilt = Random.Range(7f, 13f) * (Random.value < 0.5f ? -1f : 1f);
+            rt.localRotation = Quaternion.Euler(0f, 0f, tilt);
             group = rt.gameObject.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;
             group.interactable = false;
-            Image fill = UIFactory.Panel(rt, "Fill", new Color(color.r, color.g, color.b, 0.07f), false);
-            UIFactory.Stretch(fill.rectTransform, 0f, 0f, 0f, 0f);
-            Border(rt, 6f, color);
-            Label l = UIFactory.Text(rt, "Word", word, 44f, color, TextAnchor.MiddleCenter, true);
-            UIFactory.Stretch(l.rect, 8f, 4f, 8f, 4f);
+            // Ink layer clipped by a mask with paper-coloured holes: the ink is patchy like a real rubber stamp.
+            Image ink = UIFactory.Panel(rt, "Ink", Color.white, false);
+            ink.sprite = UITextures.InkMask();
+            ink.type = Image.Type.Tiled;
+            ink.pixelsPerUnitMultiplier = 1.3f;
+            UIFactory.Stretch(ink.rectTransform, -10f, -10f, -10f, -10f);
+            Mask mask = ink.gameObject.AddComponent<Mask>();
+            mask.showMaskGraphic = false;
+            Image fill = UIFactory.Panel(ink.rectTransform, "Fill", new Color(color.r, color.g, color.b, 0.06f), false);
+            UIFactory.Stretch(fill.rectTransform, 16f, 16f, 16f, 16f);
+            // Ragged double frame and the word.
+            Image frame = UIFactory.Panel(ink.rectTransform, "Frame", new Color(color.r, color.g, color.b, 0.92f), false);
+            frame.sprite = UITextures.StampFrame();
+            frame.type = Image.Type.Sliced;
+            frame.pixelsPerUnitMultiplier = 1.6f;
+            UIFactory.Stretch(frame.rectTransform, 4f, 4f, 4f, 4f);
+            Label l = UIFactory.Text(ink.rectTransform, "Word", word, 46f, new Color(color.r, color.g, color.b, 0.92f), TextAnchor.MiddleCenter, true);
+            UIFactory.Stretch(l.rect, 18f, 14f, 18f, 14f);
             return rt;
         }
 
@@ -65,8 +80,12 @@ namespace DeathNotice.Game
         public static RejectCard BuildRejectCard(RectTransform parent, UnityAction onRevise)
         {
             var card = new RejectCard();
-            Image bg = UIFactory.Panel(parent, "RejectCard", new Color(0.97f, 0.93f, 0.85f, 0.97f), true);
+            Image bg = UIFactory.Panel(parent, "RejectCard", new Color(0.97f, 0.93f, 0.85f, 1f), true);
             card.root = bg.rectTransform;
+            UIFactory.MakePaper(bg, 0.25f);
+            Shadow sh = bg.gameObject.AddComponent<Shadow>();
+            sh.effectColor = new Color(0f, 0f, 0f, 0.35f);
+            sh.effectDistance = new Vector2(5f, -7f);
             UIFactory.Box(card.root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), new Vector2(440f, 190f));
             Border(card.root, 3f, RejectedColor);
             card.title = UIFactory.Text(card.root, "Title", "RETURNED FOR CORRECTION", 22f, RejectedColor, TextAnchor.MiddleCenter, true);
@@ -92,6 +111,10 @@ namespace DeathNotice.Game
             RectTransform s = sheet.rectTransform;
             const float width = 620f;
             UIFactory.Box(s, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(width, 600f));
+            UIFactory.MakePaper(sheet, 0.4f);
+            Shadow drop = sheet.gameObject.AddComponent<Shadow>();
+            drop.effectColor = new Color(0f, 0f, 0f, 0.45f);
+            drop.effectDistance = new Vector2(8f, -10f);
             Border(s, 4f, frame);
             RectTransform inner = UIFactory.Rect(s, "InnerFrame");
             UIFactory.Stretch(inner, 10f, 10f, 10f, 10f);
@@ -104,8 +127,8 @@ namespace DeathNotice.Game
             Label sub = UIFactory.Text(s, "Sub", "Department of Final Arrangements — Form 1-D, as filed", 14f, UIFactory.InkSoft, TextAnchor.MiddleCenter, false);
             UIFactory.TopRow(sub.rect, y, 20f, 30f, 30f);
             y += 30f;
-            Rule(s, "Rule1", y, 90f, frame);
-            y += 16f;
+            UIFactory.OrnateRule(s, y, 90f, frame);
+            y += 18f;
 
             Label certifies = UIFactory.Text(s, "Certifies", "This certifies that", 15f, UIFactory.InkSoft, TextAnchor.MiddleCenter, false);
             UIFactory.TopRow(certifies.rect, y, 20f, 30f, 30f);

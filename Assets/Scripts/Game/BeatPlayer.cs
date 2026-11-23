@@ -175,6 +175,26 @@ namespace DeathNotice.Game
         }
 
         private static float Smooth(float k) { return k * k * (3f - 2f * k); }
+        private static float EaseIn(float k) { return k * k; }
+        private static float EaseOutBack(float k)
+        {
+            const float c1 = 1.70158f, c3 = c1 + 1f;
+            float x = k - 1f;
+            return 1f + c3 * x * x * x + c1 * x * x;
+        }
+
+        /// <summary>Lands a lying figure: flattened on impact, springs back to the resting squash.</summary>
+        private IEnumerator LandSquash(Transform v, Vector3 rest, float duration)
+        {
+            if (v == null) yield break;
+            Vector3 hit = new Vector3(rest.x * 1.3f, rest.y * 1.0f, rest.z * 0.45f);
+            yield return Tween(duration, delegate (float k)
+            {
+                if (v == null) return;
+                float e = EaseOutBack(k);
+                v.localScale = Vector3.LerpUnclamped(hit, rest, e);
+            });
+        }
 
         private static float ParseFloat(string s, float fallback)
         {
@@ -268,12 +288,17 @@ namespace DeathNotice.Game
             if (dist < 0.03f) yield break;
             float height = 0.25f + Mathf.Min(1.2f, dist * 0.12f);
             p.Face(to);
+            Transform v = p.visual;
             yield return Tween(duration, delegate (float k)
             {
                 if (p == null) return;
                 float e = Smooth(k);
                 p.transform.position = Vector3.Lerp(from, to, e) + Vector3.up * (Mathf.Sin(k * Mathf.PI) * height);
+                // stretch in the air, back to normal on landing
+                float s = Mathf.Sin(k * Mathf.PI);
+                if (v != null) v.localScale = new Vector3(1f - 0.12f * s, 1f + 0.18f * s, 1f - 0.12f * s);
             });
+            if (v != null) v.localScale = Vector3.one;
             if (p != null) p.Face(CameraPos);
         }
 
@@ -327,16 +352,25 @@ namespace DeathNotice.Game
             if (p == null) yield break;
             AudioManager.PlaySfx("die_burn");
             ParticleSystem fire = FxLibrary.Spawn("fire", p.transform.position + Vector3.up * 0.25f, stage.transform, Vector3.zero);
-            Color c0 = p.baseColor;
             Color hot = new Color(0.95f, 0.28f, 0.15f);
             Color ash = new Color(0.24f, 0.23f, 0.23f);
-            yield return Tween(0.7f, delegate (float k) { if (p != null) p.SetColor(Color.Lerp(c0, hot, k)); });
-            yield return Wait(0.5f);
             Transform v = p.visual;
-            yield return Tween(0.6f, delegate (float k)
+            // Heat up with a nervous jitter, then slump into a squat pile of ash that settles with a little bounce.
+            yield return Tween(0.7f, delegate (float k)
             {
-                if (p != null) p.SetColor(Color.Lerp(hot, ash, k));
-                if (v != null) v.localScale = new Vector3(1f + 0.35f * k, Mathf.Lerp(1f, 0.18f, k), 1f + 0.35f * k);
+                if (p != null) p.Blend(hot, EaseIn(k) * 0.85f, ash, 0f);
+                if (v != null) v.localPosition = new Vector3(Mathf.Sin(k * 60f) * 0.015f * k, 0f, 0f);
+            });
+            yield return Wait(0.4f);
+            yield return Tween(0.55f, delegate (float k)
+            {
+                float e = EaseOutBack(k);
+                if (p != null) p.Blend(hot, 0.85f, ash, k);
+                if (v != null)
+                {
+                    v.localPosition = Vector3.zero;
+                    v.localScale = new Vector3(1f + 0.4f * e, Mathf.LerpUnclamped(1f, 0.18f, e), 1f + 0.4f * e);
+                }
             });
             FxLibrary.StopEmitting(fire);
             if (p != null) FxLibrary.Spawn("dust", p.transform.position + Vector3.up * 0.1f, stage.transform, Vector3.zero);
@@ -383,12 +417,12 @@ namespace DeathNotice.Game
             {
                 v.localRotation = Quaternion.Euler(90f, 0f, 0f);
                 v.localPosition = new Vector3(0f, 0.14f, 0f);
-                v.localScale = new Vector3(1.15f, 1f, 0.75f);
             }
             AudioManager.PlaySfx("impact");
             if (rig != null) rig.Shake(Mathf.Clamp01(0.25f + drop * 0.06f));
             FxLibrary.Spawn("dust", to + Vector3.up * 0.05f, stage.transform, Vector3.zero);
-            yield return Wait(0.4f);
+            yield return LandSquash(v, new Vector3(1.15f, 1f, 0.75f), 0.35f);
+            yield return Wait(0.25f);
         }
 
         private IEnumerator DieDrown(string target)
@@ -411,8 +445,15 @@ namespace DeathNotice.Game
             yield return Tween(1.5f, delegate (float k)
             {
                 if (p == null) return;
-                p.transform.position = Vector3.Lerp(from, to, Smooth(k));
-                if (v != null) v.localRotation = Quaternion.Euler(Mathf.Sin(k * 18f) * 8f, k * 120f, 0f);
+                // two struggling bobs, then a slow sink
+                float bob = Mathf.Sin(k * Mathf.PI * 4f) * 0.08f * (1f - k);
+                p.transform.position = Vector3.Lerp(from, to, EaseIn(k)) + Vector3.up * bob;
+                if (v != null)
+                {
+                    v.localRotation = Quaternion.Euler(Mathf.Sin(k * 18f) * 8f, k * 120f, 0f);
+                    float sq = 1f + Mathf.Sin(k * Mathf.PI * 4f) * 0.06f * (1f - k);
+                    v.localScale = new Vector3(sq, 2f - sq, sq);
+                }
             });
             if (p != null) p.gameObject.SetActive(false);
             yield return Wait(0.6f);
