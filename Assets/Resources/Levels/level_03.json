@@ -1,0 +1,238 @@
+{
+  "id": "level_03",
+  "title": "The Bakery",
+  "deceased": "Agnes Crumb, bookkeeper",
+  "wishText": "Let no one ever read the ledger.",
+  "intro": "",
+  "outro": "",
+  "fields": [
+    {
+      "id": "cause",
+      "label": "Cause",
+      "options": [
+        {"id": "burn", "label": "Burned", "shiftOnly": false},
+        {"id": "drown", "label": "Drowned", "shiftOnly": false},
+        {"id": "fall", "label": "Fell", "shiftOnly": false}
+      ]
+    },
+    {
+      "id": "place",
+      "label": "Place",
+      "options": [
+        {"id": "oven", "label": "The Oven Room", "shiftOnly": false},
+        {"id": "store", "label": "The Storeroom", "shiftOnly": false},
+        {"id": "attic", "label": "The Attic", "shiftOnly": false}
+      ]
+    },
+    {
+      "id": "shift",
+      "label": "Shift",
+      "options": [
+        {"id": "four", "label": "4 AM", "shiftOnly": false},
+        {"id": "five", "label": "5 AM", "shiftOnly": false},
+        {"id": "six", "label": "6 AM", "shiftOnly": false}
+      ]
+    }
+  ],
+  "always": ["fire@oven", "water@oven", "height@attic"],
+  "states": [
+    {
+      "shift": "four",
+      "facts": ["witness@oven", "apprentice_below", "show:baker@oven", "show:apprentice@store"]
+    },
+    {
+      "shift": "five",
+      "facts": ["show:baker@shop"]
+    },
+    {
+      "shift": "six",
+      "facts": ["witness@oven", "show:baker@oven"]
+    }
+  ],
+  "anchors": ["oven", "store", "attic", "roster", "ledger", "vat", "hatch", "door", "sign", "baker", "apprentice", "shop"],
+  "clues": [
+    {
+      "anchor": "roster",
+      "text": "BAKER — 4 AM: oven, first batch. 5 AM: carry bread to the shop front. 6 AM: oven, second batch. APPRENTICE — fetch flour at 4, home by half past.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "ledger",
+      "text": "The accounts. Every page of them.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "vat",
+      "text": "Dough water. Deep enough to bathe in.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "hatch",
+      "text": "Attic hatch. Opens above the storeroom.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "door",
+      "text": "The door between oven and storeroom never shuts properly.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "sign",
+      "text": "NO FLAME BEYOND THIS POINT.",
+      "minRejects": 0
+    }
+  ],
+  "rules": [
+    {
+      "id": "no_fire",
+      "when": ["cause:burn"],
+      "unless": ["fire@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "No flame is allowed near the flour. The oven is the only fire in the building.",
+      "caption": "No flame is allowed near the flour. The oven is the only fire in the building.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "no_water",
+      "when": ["cause:drown"],
+      "unless": ["water@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "Nothing here is deep enough. The dough vat is in the Oven Room.",
+      "caption": "Nothing here is deep enough. The dough vat is in the Oven Room.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "no_height",
+      "when": ["cause:fall"],
+      "unless": ["height@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "The floor is right there. You are standing on it.",
+      "caption": "The floor is right there. You are standing on it.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "shake", "target": "", "arg": "0.2"},
+        {"do": "wait", "target": "", "arg": "0.5"}
+      ]
+    },
+    {
+      "id": "caught",
+      "when": ["cause:fall", "place:attic", "apprentice_below"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "The apprentice was fetching flour right under the hatch. He broke your fall. He would like an apology.",
+      "caption": "The apprentice was fetching flour right under the hatch. He broke your fall. He would like an apology.",
+      "beats": [
+        {"do": "ghost_to", "target": "hatch", "arg": ""},
+        {"do": "ghost_to", "target": "store", "arg": ""},
+        {"do": "shake", "target": "", "arg": "0.3"},
+        {"do": "sfx", "target": "", "arg": "oof"}
+      ]
+    },
+    {
+      "id": "rescued",
+      "when": ["witness@here"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "The baker was right there. He hauled you out, swearing magnificently.",
+      "caption": "The baker was right there. He hauled you out, swearing magnificently.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "npc_to", "target": "baker", "arg": "here"},
+        {"do": "sfx", "target": "", "arg": "swear"}
+      ]
+    },
+    {
+      "id": "drown_vat",
+      "when": ["cause:drown"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "You drowned in the dough vat. The ledger sits untouched next door.",
+      "caption": "You drowned in the dough vat. The ledger sits untouched next door.",
+      "beats": [
+        {"do": "ghost_to", "target": "vat", "arg": ""},
+        {"do": "die_drown", "target": "vat", "arg": ""},
+        {"do": "fx", "target": "vat", "arg": "splash"},
+        {"do": "wait", "target": "", "arg": "1"}
+      ]
+    },
+    {
+      "id": "fall_attic",
+      "when": ["cause:fall"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "You landed in the storeroom, right beside the ledger. It is still perfectly legible.",
+      "caption": "You landed in the storeroom, right beside the ledger. It is still perfectly legible.",
+      "beats": [
+        {"do": "ghost_to", "target": "attic", "arg": ""},
+        {"do": "die_fall", "target": "store", "arg": ""},
+        {"do": "shake", "target": "", "arg": "0.3"}
+      ]
+    },
+    {
+      "id": "burn_oven",
+      "when": ["cause:burn"],
+      "unless": [],
+      "add": ["fire_loose"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "The oven door swings wide. Nobody is here to shut it.",
+      "beats": [
+        {"do": "ghost_to", "target": "oven", "arg": ""},
+        {"do": "die_burn", "target": "oven", "arg": ""},
+        {"do": "fx", "target": "oven", "arg": "fire"},
+        {"do": "wait", "target": "", "arg": "0.5"}
+      ]
+    },
+    {
+      "id": "spread",
+      "when": ["fire_loose"],
+      "unless": [],
+      "add": ["ledger_burned"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "The fire walks through the open door into the storeroom. Paper burns first.",
+      "beats": [
+        {"do": "fx", "target": "door", "arg": "fire"},
+        {"do": "fx", "target": "store", "arg": "fire"},
+        {"do": "fx", "target": "ledger", "arg": "fire"},
+        {"do": "toggle", "target": "ledger", "arg": "off"}
+      ]
+    }
+  ],
+  "wish": {
+    "all": ["ledger_burned"],
+    "none": []
+  },
+  "defaultVerdict": "You died. The wish did not come true.",
+  "solutions": [
+    {
+      "choices": [
+        {"field": "cause", "option": "burn"},
+        {"field": "place", "option": "oven"},
+        {"field": "shift", "option": "five"}
+      ]
+    }
+  ]
+}

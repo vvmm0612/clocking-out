@@ -1,0 +1,268 @@
+{
+  "id": "level_05",
+  "title": "The Clock Tower",
+  "deceased": "Tobias Pell, clock-winder",
+  "wishText": "Stop the clock. Let this shift never end.",
+  "intro": "",
+  "outro": "",
+  "fields": [
+    {
+      "id": "cause",
+      "label": "Cause",
+      "options": [
+        {"id": "burn", "label": "Burned", "shiftOnly": false},
+        {"id": "drown", "label": "Drowned", "shiftOnly": false},
+        {"id": "fall", "label": "Fell", "shiftOnly": false}
+      ]
+    },
+    {
+      "id": "place",
+      "label": "Place",
+      "options": [
+        {"id": "belfry", "label": "The Belfry", "shiftOnly": false},
+        {"id": "gears", "label": "The Gear Room", "shiftOnly": false},
+        {"id": "pit", "label": "The Pendulum Pit", "shiftOnly": false},
+        {"id": "face", "label": "The Clock Face", "shiftOnly": false}
+      ]
+    },
+    {
+      "id": "shift",
+      "label": "Shift",
+      "options": [
+        {"id": "nine", "label": "9 PM", "shiftOnly": false},
+        {"id": "ten", "label": "10 PM", "shiftOnly": false},
+        {"id": "eleven", "label": "11 PM", "shiftOnly": false},
+        {"id": "midnight", "label": "Midnight", "shiftOnly": false}
+      ]
+    }
+  ],
+  "always": ["height@belfry", "height@face", "fire@gears", "water@pit"],
+  "states": [
+    {
+      "shift": "nine",
+      "facts": ["witness@gears", "show:watchman@gears", "show:hatch=closed"]
+    },
+    {
+      "shift": "ten",
+      "facts": ["witness@belfry", "hatch_open", "show:watchman@belfry", "show:hatch=open"]
+    },
+    {
+      "shift": "eleven",
+      "facts": ["witness@pit", "hatch_open", "show:watchman@pit", "show:hatch=open"]
+    },
+    {
+      "shift": "midnight",
+      "facts": ["witness@gears", "hatch_open", "watchman_in_gears", "show:watchman@gears", "show:hatch=open"]
+    }
+  ],
+  "anchors": ["belfry", "gears", "pit", "face", "round_sheet", "pendulum", "minute_hand", "hatch", "watchman"],
+  "clues": [
+    {
+      "anchor": "round_sheet",
+      "text": "WATCHMAN'S ROUND — 9 PM Gear Room: check the lamp. 10 PM Belfry: open the hatch, grease the bell. 11 PM Pit: bail out the rainwater. Midnight Gear Room: wind the clock. Leave the hatch open till morning.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "gears",
+      "text": "Solid brass. A dropped spanner once stopped it for a week.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "pendulum",
+      "text": "Two hundred pounds of lead. It stops for nothing.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "minute_hand",
+      "text": "Thin copper. Not built to hold a man.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "hatch",
+      "text": "Opens straight onto the gear train below.",
+      "minRejects": 0
+    }
+  ],
+  "rules": [
+    {
+      "id": "no_fire",
+      "when": ["cause:burn"],
+      "unless": ["fire@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "The only flame in the tower is the oil lamp in the Gear Room.",
+      "caption": "The only flame in the tower is the oil lamp in the Gear Room.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "no_water",
+      "when": ["cause:drown"],
+      "unless": ["water@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "Only the Pendulum Pit holds water.",
+      "caption": "Only the Pendulum Pit holds water.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "no_height",
+      "when": ["cause:fall"],
+      "unless": ["height@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "Not enough of a drop to matter.",
+      "caption": "Not enough of a drop to matter.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "shake", "target": "", "arg": "0.2"},
+        {"do": "wait", "target": "", "arg": "0.5"}
+      ]
+    },
+    {
+      "id": "rescued",
+      "when": ["witness@here"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "The night watchman was on his round. He caught you by the collar.",
+      "caption": "The night watchman was on his round. He caught you by the collar.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "npc_to", "target": "watchman", "arg": "here"},
+        {"do": "sfx", "target": "", "arg": "grab"}
+      ]
+    },
+    {
+      "id": "fall_face",
+      "when": ["cause:fall", "place:face"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "You clung to the minute hand. It bent. You fell. The clock now runs five minutes slow — but it runs.",
+      "caption": "You clung to the minute hand. It bent. You fell. The clock now runs five minutes slow — but it runs.",
+      "beats": [
+        {"do": "ghost_to", "target": "minute_hand", "arg": ""},
+        {"do": "die_fall", "target": "face", "arg": ""},
+        {"do": "rotate", "target": "minute_hand", "arg": "1"}
+      ]
+    },
+    {
+      "id": "burn_gears",
+      "when": ["cause:burn"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "Brass does not burn. The gears glowed red and kept turning.",
+      "caption": "Brass does not burn. The gears glowed red and kept turning.",
+      "beats": [
+        {"do": "ghost_to", "target": "gears", "arg": ""},
+        {"do": "die_burn", "target": "gears", "arg": ""},
+        {"do": "fx", "target": "gears", "arg": "sparks"},
+        {"do": "rotate", "target": "gears", "arg": "1"}
+      ]
+    },
+    {
+      "id": "drown_pit",
+      "when": ["cause:drown"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "The pendulum brushed you aside on every swing and never missed a beat.",
+      "caption": "The pendulum brushed you aside on every swing and never missed a beat.",
+      "beats": [
+        {"do": "ghost_to", "target": "pit", "arg": ""},
+        {"do": "die_drown", "target": "pit", "arg": ""},
+        {"do": "fx", "target": "pendulum", "arg": "splash"},
+        {"do": "rotate", "target": "pendulum", "arg": "1"}
+      ]
+    },
+    {
+      "id": "hatch_shut",
+      "when": ["cause:fall", "place:belfry"],
+      "unless": ["hatch_open"],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "You fell from the bell frame onto the closed hatch. The gears below never noticed.",
+      "caption": "You fell from the bell frame onto the closed hatch. The gears below never noticed.",
+      "beats": [
+        {"do": "ghost_to", "target": "belfry", "arg": ""},
+        {"do": "die_fall", "target": "hatch", "arg": ""},
+        {"do": "wait", "target": "", "arg": "1"}
+      ]
+    },
+    {
+      "id": "through",
+      "when": ["cause:fall", "place:belfry", "hatch_open"],
+      "unless": [],
+      "add": ["body_in_gears"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "You drop through the open hatch, straight into the gear train.",
+      "beats": [
+        {"do": "ghost_to", "target": "belfry", "arg": ""},
+        {"do": "die_fall", "target": "gears", "arg": ""},
+        {"do": "shake", "target": "", "arg": "0.4"}
+      ]
+    },
+    {
+      "id": "pulled_out",
+      "when": ["body_in_gears", "watchman_in_gears"],
+      "unless": [],
+      "add": [],
+      "remove": ["body_in_gears"],
+      "reject": false,
+      "verdict": "The watchman was right there, winding the clock. He pulled you out of the gears and set it going again.",
+      "caption": "The watchman was right there, winding the clock. He pulled you out of the gears and set it going again.",
+      "beats": [
+        {"do": "npc_to", "target": "watchman", "arg": "gears"},
+        {"do": "rotate", "target": "gears", "arg": "1"},
+        {"do": "sfx", "target": "", "arg": "tick"}
+      ]
+    },
+    {
+      "id": "jam",
+      "when": ["body_in_gears"],
+      "unless": [],
+      "add": ["clock_stopped"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "Brass teeth meet something that will not give. The great clock stops.",
+      "beats": [
+        {"do": "fx", "target": "gears", "arg": "sparks"},
+        {"do": "rotate", "target": "gears", "arg": "0"},
+        {"do": "sfx", "target": "", "arg": "grind"},
+        {"do": "shake", "target": "", "arg": "0.6"}
+      ]
+    }
+  ],
+  "wish": {
+    "all": ["clock_stopped"],
+    "none": []
+  },
+  "defaultVerdict": "You died. The wish did not come true.",
+  "solutions": [
+    {
+      "choices": [
+        {"field": "cause", "option": "fall"},
+        {"field": "place", "option": "belfry"},
+        {"field": "shift", "option": "eleven"}
+      ]
+    }
+  ]
+}

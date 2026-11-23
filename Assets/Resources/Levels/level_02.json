@@ -1,0 +1,284 @@
+{
+  "id": "level_02",
+  "title": "The Mill",
+  "deceased": "Ned Grist, miller's hand",
+  "wishText": "Let the old wheel turn again.",
+  "intro": "",
+  "outro": "",
+  "fields": [
+    {
+      "id": "cause",
+      "label": "Cause",
+      "options": [
+        {"id": "burn", "label": "Burned", "shiftOnly": false},
+        {"id": "drown", "label": "Drowned", "shiftOnly": false},
+        {"id": "fall", "label": "Fell", "shiftOnly": false}
+      ]
+    },
+    {
+      "id": "place",
+      "label": "Place",
+      "options": [
+        {"id": "sluice", "label": "The Sluice Catwalk", "shiftOnly": false},
+        {"id": "pit", "label": "The Wheel Pit", "shiftOnly": false},
+        {"id": "loft", "label": "The Grain Loft", "shiftOnly": false}
+      ]
+    },
+    {
+      "id": "shift",
+      "label": "Shift",
+      "options": [
+        {"id": "dawn", "label": "Dawn Shift", "shiftOnly": false},
+        {"id": "noon", "label": "Noon Shift", "shiftOnly": false},
+        {"id": "dusk", "label": "Dusk Shift", "shiftOnly": false}
+      ]
+    }
+  ],
+  "always": ["height@sluice", "height@loft", "fire@sluice", "fire@pit", "fire@loft"],
+  "states": [
+    {
+      "shift": "dawn",
+      "facts": ["show:water_level=low"]
+    },
+    {
+      "shift": "noon",
+      "facts": ["pond_deep", "water@sluice", "show:water_level=high"]
+    },
+    {
+      "shift": "dusk",
+      "facts": ["show:water_level=low"]
+    }
+  ],
+  "anchors": ["sluice", "pit", "loft", "dam_notice", "gauge", "lever", "trapdoor", "sign", "wheel", "gate", "pond"],
+  "clues": [
+    {
+      "anchor": "dam_notice",
+      "text": "Upstream dam opens its gates for the Noon Shift only.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "gauge",
+      "text": "Pond depth gauge.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "lever",
+      "text": "Seized solid since spring. Needs one good whack from above.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "trapdoor",
+      "text": "Opens onto the flour sacks below.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "sign",
+      "text": "NO NAKED FLAMES. Flour dust.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "wheel",
+      "text": "Dry oak. Ten years without water.",
+      "minRejects": 0
+    }
+  ],
+  "rules": [
+    {
+      "id": "dry_pit",
+      "when": ["cause:drown", "place:pit"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "The pit is bone dry while the gate is shut.",
+      "caption": "The pit is bone dry while the gate is shut.",
+      "beats": [
+        {"do": "ghost_to", "target": "pit", "arg": ""},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "dry_loft",
+      "when": ["cause:drown", "place:loft"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "Flour is not a liquid. You checked.",
+      "caption": "Flour is not a liquid. You checked.",
+      "beats": [
+        {"do": "ghost_to", "target": "loft", "arg": ""},
+        {"do": "fx", "target": "loft", "arg": "smoke"},
+        {"do": "wait", "target": "", "arg": "0.6"}
+      ]
+    },
+    {
+      "id": "shallow",
+      "when": ["cause:drown", "place:sluice"],
+      "unless": ["pond_deep"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "On this shift the pond is ankle-deep. You got wet socks.",
+      "caption": "On this shift the pond is ankle-deep. You got wet socks.",
+      "beats": [
+        {"do": "ghost_to", "target": "sluice", "arg": ""},
+        {"do": "fx", "target": "pond", "arg": "splash"},
+        {"do": "wait", "target": "", "arg": "0.6"}
+      ]
+    },
+    {
+      "id": "bottom",
+      "when": ["cause:fall", "place:pit"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "You are already at the bottom.",
+      "caption": "You are already at the bottom.",
+      "beats": [
+        {"do": "ghost_to", "target": "pit", "arg": ""},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "soft",
+      "when": ["cause:fall", "place:loft"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "You fell through the trapdoor into a heap of flour sacks. Embarrassing. Not fatal.",
+      "caption": "You fell through the trapdoor into a heap of flour sacks. Embarrassing. Not fatal.",
+      "beats": [
+        {"do": "ghost_to", "target": "trapdoor", "arg": ""},
+        {"do": "fx", "target": "trapdoor", "arg": "smoke"},
+        {"do": "sfx", "target": "", "arg": "thump"}
+      ]
+    },
+    {
+      "id": "drown_sluice",
+      "when": ["cause:drown", "place:sluice"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "You sank beside the gate. The gate stayed shut. The wheel stayed still.",
+      "caption": "You sank beside the gate. The gate stayed shut. The wheel stayed still.",
+      "beats": [
+        {"do": "ghost_to", "target": "sluice", "arg": ""},
+        {"do": "die_drown", "target": "pond", "arg": ""},
+        {"do": "fx", "target": "pond", "arg": "splash"},
+        {"do": "wait", "target": "", "arg": "1"}
+      ]
+    },
+    {
+      "id": "burn_loft",
+      "when": ["cause:burn", "place:loft"],
+      "unless": [],
+      "add": ["mill_burned"],
+      "remove": [],
+      "reject": false,
+      "verdict": "Lantern, meet flour dust. The mill is now a memory. So is the wheel.",
+      "caption": "Lantern, meet flour dust. The mill is now a memory. So is the wheel.",
+      "beats": [
+        {"do": "ghost_to", "target": "loft", "arg": ""},
+        {"do": "die_burn", "target": "loft", "arg": ""},
+        {"do": "fx", "target": "loft", "arg": "fire"},
+        {"do": "shake", "target": "", "arg": "0.6"},
+        {"do": "fx", "target": "wheel", "arg": "smoke"}
+      ]
+    },
+    {
+      "id": "burn_pit",
+      "when": ["cause:burn", "place:pit"],
+      "unless": [],
+      "add": ["wheel_burned"],
+      "remove": [],
+      "reject": false,
+      "verdict": "Ten years of dry oak. The wheel burned beautifully and will never turn again.",
+      "caption": "Ten years of dry oak. The wheel burned beautifully and will never turn again.",
+      "beats": [
+        {"do": "ghost_to", "target": "pit", "arg": ""},
+        {"do": "die_burn", "target": "pit", "arg": ""},
+        {"do": "fx", "target": "wheel", "arg": "fire"},
+        {"do": "sfx", "target": "", "arg": "crackle"}
+      ]
+    },
+    {
+      "id": "burn_sluice",
+      "when": ["cause:burn", "place:sluice"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "You burned on wet planks above the water. Nothing else caught.",
+      "caption": "You burned on wet planks above the water. Nothing else caught.",
+      "beats": [
+        {"do": "ghost_to", "target": "sluice", "arg": ""},
+        {"do": "die_burn", "target": "sluice", "arg": ""},
+        {"do": "fx", "target": "sluice", "arg": "smoke"}
+      ]
+    },
+    {
+      "id": "fall_sluice",
+      "when": ["cause:fall", "place:sluice"],
+      "unless": [],
+      "add": ["gate_open"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "You drop from the catwalk onto the rusted lever. Something gives. Mostly the lever.",
+      "beats": [
+        {"do": "ghost_to", "target": "sluice", "arg": ""},
+        {"do": "die_fall", "target": "lever", "arg": ""},
+        {"do": "fx", "target": "lever", "arg": "sparks"},
+        {"do": "toggle", "target": "gate", "arg": "off"}
+      ]
+    },
+    {
+      "id": "trickle",
+      "when": ["gate_open"],
+      "unless": ["pond_deep"],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "The gate groaned open. A trickle ran through. The wheel did not care.",
+      "caption": "The gate groaned open. A trickle ran through. The wheel did not care.",
+      "beats": [
+        {"do": "fx", "target": "gate", "arg": "water"},
+        {"do": "wait", "target": "", "arg": "1"}
+      ]
+    },
+    {
+      "id": "rush",
+      "when": ["gate_open", "pond_deep"],
+      "unless": [],
+      "add": ["wheel_turning"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "The whole pond comes through at once. The old wheel shudders, complains, and turns.",
+      "beats": [
+        {"do": "fx", "target": "gate", "arg": "water"},
+        {"do": "rotate", "target": "wheel", "arg": "1"},
+        {"do": "sfx", "target": "", "arg": "creak"},
+        {"do": "shake", "target": "", "arg": "0.3"}
+      ]
+    }
+  ],
+  "wish": {
+    "all": ["wheel_turning"],
+    "none": []
+  },
+  "defaultVerdict": "You died. The wish did not come true.",
+  "solutions": [
+    {
+      "choices": [
+        {"field": "cause", "option": "fall"},
+        {"field": "place", "option": "sluice"},
+        {"field": "shift", "option": "noon"}
+      ]
+    }
+  ]
+}

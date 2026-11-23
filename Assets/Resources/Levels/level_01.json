@@ -1,0 +1,165 @@
+{
+  "id": "level_01",
+  "title": "The Lighthouse",
+  "deceased": "Tom Wick, keeper's apprentice",
+  "wishText": "Let the great lamp burn tonight.",
+  "intro": "You're due today. I'm swamped, so fill it in yourself. I'll stamp it if it adds up. Do make it useful — you only get the one.",
+  "outro": "",
+  "fields": [
+    {
+      "id": "cause",
+      "label": "Cause",
+      "options": [
+        {"id": "burn", "label": "Burned", "shiftOnly": false},
+        {"id": "drown", "label": "Drowned", "shiftOnly": false},
+        {"id": "fall", "label": "Fell", "shiftOnly": false}
+      ]
+    },
+    {
+      "id": "place",
+      "label": "Place",
+      "options": [
+        {"id": "dock", "label": "The Dock", "shiftOnly": false},
+        {"id": "beach", "label": "The Beach", "shiftOnly": false},
+        {"id": "lamp", "label": "The Lamp Room", "shiftOnly": false}
+      ]
+    }
+  ],
+  "always": ["water@dock", "water@beach", "height@lamp", "fire@lamp"],
+  "states": [],
+  "anchors": ["dock", "beach", "lamp", "lantern", "gallery"],
+  "clues": [
+    {
+      "anchor": "lamp",
+      "text": "The wick is dry and ready. All it needs is a flame.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "lantern",
+      "text": "A pilot lantern, always lit. The only fire on the rock.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "dock",
+      "text": "Deep water. Cold.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "beach",
+      "text": "The tide comes right up to the stones.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "gallery",
+      "text": "A sixty-foot drop to the rocks.",
+      "minRejects": 0
+    }
+  ],
+  "rules": [
+    {
+      "id": "no_fire",
+      "when": ["cause:burn"],
+      "unless": ["fire@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "Nothing out here could set you alight. The only flame on this rock is the pilot lantern upstairs.",
+      "caption": "Nothing out here could set you alight. The only flame on this rock is the pilot lantern upstairs.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "no_water",
+      "when": ["cause:drown"],
+      "unless": ["water@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "You cannot drown in a dry room, however hard you try.",
+      "caption": "You cannot drown in a dry room, however hard you try.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "no_height",
+      "when": ["cause:fall"],
+      "unless": ["height@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "You tripped. You got up. Nobody dies of that.",
+      "caption": "You tripped. You got up. Nobody dies of that.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "shake", "target": "", "arg": "0.2"},
+        {"do": "wait", "target": "", "arg": "0.5"}
+      ]
+    },
+    {
+      "id": "burn_lamp",
+      "when": ["cause:burn"],
+      "unless": [],
+      "add": ["lamp_lit"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "The lantern tips. Your sleeve catches — then the wick. The great lamp roars awake.",
+      "beats": [
+        {"do": "ghost_to", "target": "lamp", "arg": ""},
+        {"do": "fx", "target": "lantern", "arg": "fire"},
+        {"do": "die_burn", "target": "lamp", "arg": ""},
+        {"do": "light", "target": "lamp", "arg": ""},
+        {"do": "sfx", "target": "", "arg": "roar"}
+      ]
+    },
+    {
+      "id": "drown_any",
+      "when": ["cause:drown"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "The sea took you quietly. The lamp stayed dark.",
+      "caption": "The sea took you quietly. The lamp stayed dark.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "die_drown", "target": "here", "arg": ""},
+        {"do": "fx", "target": "here", "arg": "splash"},
+        {"do": "wait", "target": "", "arg": "1"}
+      ]
+    },
+    {
+      "id": "fall_lamp",
+      "when": ["cause:fall"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "A long drop from the gallery. The lamp stayed dark, and your lantern went down with you.",
+      "caption": "A long drop from the gallery. The lamp stayed dark, and your lantern went down with you.",
+      "beats": [
+        {"do": "ghost_to", "target": "gallery", "arg": ""},
+        {"do": "die_fall", "target": "gallery", "arg": ""},
+        {"do": "toggle", "target": "lantern", "arg": "off"},
+        {"do": "shake", "target": "", "arg": "0.4"}
+      ]
+    }
+  ],
+  "wish": {
+    "all": ["lamp_lit"],
+    "none": []
+  },
+  "defaultVerdict": "You died. The wish did not come true.",
+  "solutions": [
+    {
+      "choices": [
+        {"field": "cause", "option": "burn"},
+        {"field": "place", "option": "lamp"}
+      ]
+    }
+  ]
+}

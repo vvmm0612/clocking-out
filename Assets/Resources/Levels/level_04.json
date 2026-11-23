@@ -1,0 +1,286 @@
+{
+  "id": "level_04",
+  "title": "The Railway Halt",
+  "deceased": "Wilf Sidings, lamp boy",
+  "wishText": "Stop the midnight express before the broken bridge.",
+  "intro": "",
+  "outro": "",
+  "fields": [
+    {
+      "id": "cause",
+      "label": "Cause",
+      "options": [
+        {"id": "burn", "label": "Burned", "shiftOnly": false},
+        {"id": "drown", "label": "Drowned", "shiftOnly": false},
+        {"id": "fall", "label": "Fell", "shiftOnly": false}
+      ]
+    },
+    {
+      "id": "place",
+      "label": "Place",
+      "options": [
+        {"id": "box", "label": "The Signal Box", "shiftOnly": false},
+        {"id": "tower", "label": "The Water Tower", "shiftOnly": false},
+        {"id": "platform", "label": "The Platform", "shiftOnly": false}
+      ]
+    },
+    {
+      "id": "shift",
+      "label": "Shift",
+      "options": [
+        {"id": "evening", "label": "Evening Shift", "shiftOnly": false},
+        {"id": "night", "label": "Night Shift", "shiftOnly": false},
+        {"id": "graveyard", "label": "Graveyard Shift", "shiftOnly": false}
+      ]
+    }
+  ],
+  "always": ["height@box", "height@tower", "water@tower", "fire@platform"],
+  "states": [
+    {
+      "shift": "evening",
+      "facts": ["witness@box", "witness@platform", "siding_free", "show:tank_level=half", "show:signalman@box", "show:stationmaster@platform"]
+    },
+    {
+      "shift": "night",
+      "facts": ["witness@box", "witness@platform", "show:tank_level=three_quarters", "show:freight@siding", "show:signalman@box", "show:stationmaster@platform"]
+    },
+    {
+      "shift": "graveyard",
+      "facts": ["tank_brim", "show:tank_level=almost_full", "show:freight@siding"]
+    }
+  ],
+  "anchors": ["box", "tower", "platform", "timetable", "rulebook", "tank", "roster", "lever", "brazier", "telegram", "signalman", "stationmaster", "express", "freight", "siding", "signal_arm", "track", "bridge"],
+  "clues": [
+    {
+      "anchor": "timetable",
+      "text": "9:30 PM freight — holds on the siding until dawn. 11:59 PM express — does not stop.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "rulebook",
+      "text": "Rule 14: a driver MUST stop when the WATER STOP arm is out.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "tank",
+      "text": "The float raises the WATER STOP arm when the tank is brim-full. The pump refills it through the night.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "roster",
+      "text": "Evening & Night shifts: signalman (box), stationmaster (platform). Graveyard shift: unstaffed since the budget cuts.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "lever",
+      "text": "Points lever. Shifts the express onto the siding.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "brazier",
+      "text": "Lit every evening. Every driver knows it.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "telegram",
+      "text": "BRIDGE OUT. Nobody has told the express.",
+      "minRejects": 0
+    }
+  ],
+  "rules": [
+    {
+      "id": "no_fire",
+      "when": ["cause:burn"],
+      "unless": ["fire@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "The brazier on the platform is the only fire at this halt.",
+      "caption": "The brazier on the platform is the only fire at this halt.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "no_water",
+      "when": ["cause:drown"],
+      "unless": ["water@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "The only deep water here is inside the tower tank.",
+      "caption": "The only deep water here is inside the tower tank.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "no_height",
+      "when": ["cause:fall"],
+      "unless": ["height@here"],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "The platform is knee-high. Try harder.",
+      "caption": "The platform is knee-high. Try harder.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "shake", "target": "", "arg": "0.2"},
+        {"do": "wait", "target": "", "arg": "0.5"}
+      ]
+    },
+    {
+      "id": "rescued",
+      "when": ["witness@here"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "Someone on shift saw you and dragged you clear. Staffed hours are so inconvenient.",
+      "caption": "Someone on shift saw you and dragged you clear. Staffed hours are so inconvenient.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "sfx", "target": "", "arg": "whistle"},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "fall_box",
+      "when": ["cause:fall", "place:box"],
+      "unless": [],
+      "add": ["points_shifted"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "You drop from the gallery onto the points lever. It shifts.",
+      "beats": [
+        {"do": "ghost_to", "target": "box", "arg": ""},
+        {"do": "die_fall", "target": "lever", "arg": ""},
+        {"do": "fx", "target": "lever", "arg": "sparks"},
+        {"do": "sfx", "target": "", "arg": "clunk"}
+      ]
+    },
+    {
+      "id": "diverted",
+      "when": ["points_shifted", "siding_free"],
+      "unless": [],
+      "add": ["express_safe"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "The express swings onto the empty siding and rolls to a stop.",
+      "beats": [
+        {"do": "move", "target": "express", "arg": "siding"},
+        {"do": "sfx", "target": "", "arg": "brakes"}
+      ],
+      "unreachable": true
+    },
+    {
+      "id": "crash",
+      "when": ["points_shifted"],
+      "unless": ["siding_free"],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "The express swung onto the siding — straight into the parked freight wagons. That was not the wish.",
+      "caption": "The express swung onto the siding — straight into the parked freight wagons. That was not the wish.",
+      "beats": [
+        {"do": "move", "target": "express", "arg": "siding"},
+        {"do": "fx", "target": "freight", "arg": "smoke"},
+        {"do": "shake", "target": "", "arg": "0.8"},
+        {"do": "sfx", "target": "", "arg": "crash"}
+      ]
+    },
+    {
+      "id": "fall_tower",
+      "when": ["cause:fall", "place:tower"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "You fell from the tank ladder onto the track. In the dark, the driver never saw you.",
+      "caption": "You fell from the tank ladder onto the track. In the dark, the driver never saw you.",
+      "beats": [
+        {"do": "ghost_to", "target": "tower", "arg": ""},
+        {"do": "die_fall", "target": "track", "arg": ""},
+        {"do": "move", "target": "express", "arg": "bridge"}
+      ]
+    },
+    {
+      "id": "burn_platform",
+      "when": ["cause:burn"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "The express thundered past a small fire on the platform. The driver took it for the brazier.",
+      "caption": "The express thundered past a small fire on the platform. The driver took it for the brazier.",
+      "beats": [
+        {"do": "ghost_to", "target": "platform", "arg": ""},
+        {"do": "die_burn", "target": "platform", "arg": ""},
+        {"do": "move", "target": "express", "arg": "bridge"}
+      ]
+    },
+    {
+      "id": "drown_tank",
+      "when": ["cause:drown"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "You slip into the tank. The water rises by exactly one of you.",
+      "beats": [
+        {"do": "ghost_to", "target": "tank", "arg": ""},
+        {"do": "die_drown", "target": "tank", "arg": ""},
+        {"do": "fx", "target": "tank", "arg": "splash"}
+      ]
+    },
+    {
+      "id": "float_no",
+      "when": ["cause:drown"],
+      "unless": ["tank_brim"],
+      "add": [],
+      "remove": [],
+      "reject": false,
+      "verdict": "The water rose, but not to the brim. The float never lifted the signal arm.",
+      "caption": "The water rose, but not to the brim. The float never lifted the signal arm.",
+      "beats": [
+        {"do": "wait", "target": "", "arg": "0.8"},
+        {"do": "move", "target": "express", "arg": "bridge"}
+      ]
+    },
+    {
+      "id": "float_yes",
+      "when": ["cause:drown", "tank_brim"],
+      "unless": [],
+      "add": ["express_safe"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "The float lifts. The WATER STOP arm swings out. The driver, cursing, obeys the rulebook and brakes.",
+      "beats": [
+        {"do": "toggle", "target": "signal_arm", "arg": "on"},
+        {"do": "sfx", "target": "", "arg": "brakes"},
+        {"do": "move", "target": "express", "arg": "platform"},
+        {"do": "shake", "target": "", "arg": "0.3"}
+      ]
+    }
+  ],
+  "wish": {
+    "all": ["express_safe"],
+    "none": []
+  },
+  "defaultVerdict": "You died. The wish did not come true.",
+  "solutions": [
+    {
+      "choices": [
+        {"field": "cause", "option": "drown"},
+        {"field": "place", "option": "tower"},
+        {"field": "shift", "option": "graveyard"}
+      ]
+    }
+  ]
+}

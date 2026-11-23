@@ -1,0 +1,17 @@
+file,type,source,tool_or_author,license,ai_generated,prompt_or_url,date,notes
+Assets/Scripts/Core/*.cs,code,original,vvmm0612 (with generative AI coding assistance),MIT,partial,,2026-11,"Level model, JSON loader, simulator"
+Assets/Scripts/Game/*.cs,code,original,vvmm0612 (with generative AI coding assistance),MIT,partial,,2026-11,"Stage builder, UI, playback, audio, flow"
+Assets/Editor/*.cs,code,original,vvmm0612 (with generative AI coding assistance),MIT,partial,,2026-11,"BuildScript, ProjectSetup"
+Assets/Tests/EditMode/*.cs,code,original,vvmm0612 (with generative AI coding assistance),MIT,partial,,2026-11,EditMode tests
+tools/*.ps1,code,original,vvmm0612 (with generative AI coding assistance),MIT,partial,,2026-11,Batch-mode compile / test / WebGL build scripts
+tools/validate_levels.py,code,original,vvmm0612 (with generative AI coding assistance),MIT,partial,,2026-11,Reference level validator
+Assets/Resources/Levels/level_0*.json,text,original,vvmm0612 (with generative AI writing assistance),MIT,partial,,2026-11,"Puzzle data and all in-game English text (clues, captions, verdicts)"
+docs/*.md,text,original,vvmm0612 (with generative AI writing assistance),MIT,partial,,2026-11,Design documents and briefs
+README.md,text,original,vvmm0612 (with generative AI writing assistance),MIT,partial,,2026-11,
+TextMesh Pro Essential Resources (LiberationSans SDF),font,Unity TextMesh Pro package,Liberation Fonts project,SIL Open Font License 1.1,no,,2026-11,Bundled with TMP Essential Resources; verify license text in package
+Assets/Resources/Models/level_01/*.fbx,model,,,,,,,To fill in: one row per file once art arrives
+Assets/Resources/Audio/Bgm/level.ogg,music,,,,,,,To fill in
+Assets/Resources/Audio/Bgm/title.ogg,music,,,,,,,To fill in
+Assets/Resources/Audio/Sfx/*,sfx,,,,,,,To fill in: one row per file
+UI textures (notice / stamps / certificate),texture,,,,,,,To fill in: one row per file
+itch cover 630x500,image,,,,,,,To fill in

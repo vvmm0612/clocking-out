@@ -1,0 +1,209 @@
+{
+  "id": "level_06",
+  "title": "The Office",
+  "deceased": "DEATH",
+  "wishText": "Find someone to cover my shift.",
+  "intro": "",
+  "outro": "Your shift begins.",
+  "fields": [
+    {
+      "id": "cause",
+      "label": "Cause",
+      "options": [
+        {"id": "burn", "label": "Burned", "shiftOnly": false},
+        {"id": "drown", "label": "Drowned", "shiftOnly": false},
+        {"id": "fall", "label": "Fell", "shiftOnly": false},
+        {"id": "retire", "label": "End of Shift", "shiftOnly": true}
+      ]
+    },
+    {
+      "id": "place",
+      "label": "Place",
+      "options": [
+        {"id": "desk", "label": "At His Desk", "shiftOnly": false},
+        {"id": "archive", "label": "The Archive", "shiftOnly": false},
+        {"id": "door", "label": "The Door", "shiftOnly": false}
+      ]
+    },
+    {
+      "id": "shift",
+      "label": "Shift",
+      "options": [
+        {"id": "day", "label": "Day Shift", "shiftOnly": false},
+        {"id": "night", "label": "Night Shift", "shiftOnly": false},
+        {"id": "graveyard", "label": "Graveyard Shift", "shiftOnly": false}
+      ]
+    }
+  ],
+  "always": [],
+  "states": [
+    {
+      "shift": "day",
+      "facts": []
+    },
+    {
+      "shift": "night",
+      "facts": []
+    },
+    {
+      "shift": "graveyard",
+      "facts": []
+    }
+  ],
+  "anchors": ["desk", "archive", "door", "time_clock", "form_footer", "scythe", "keyboard_plaque"],
+  "clues": [
+    {
+      "anchor": "time_clock",
+      "text": "Punched in: the beginning. Punched out: —",
+      "minRejects": 0
+    },
+    {
+      "anchor": "form_footer",
+      "text": "Form 1-D. Some options are reserved for shift supervisors.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "scythe",
+      "text": "It has never once been put down.",
+      "minRejects": 0
+    },
+    {
+      "anchor": "keyboard_plaque",
+      "text": "He glances at the oldest key on your keyboard.",
+      "minRejects": 2
+    }
+  ],
+  "rules": [
+    {
+      "id": "no_burn",
+      "when": ["cause:burn"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "He has no flesh to burn. The robe is flame-retardant; he had it checked in 1666.",
+      "caption": "He has no flesh to burn. The robe is flame-retardant; he had it checked in 1666.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "fx", "target": "here", "arg": "fire"},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "no_drown",
+      "when": ["cause:drown"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "No lungs. He once walked the Atlantic floor to deliver a notice.",
+      "caption": "No lungs. He once walked the Atlantic floor to deliver a notice.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "fx", "target": "here", "arg": "splash"},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "no_fall",
+      "when": ["cause:fall"],
+      "unless": [],
+      "add": [],
+      "remove": [],
+      "reject": true,
+      "verdict": "He does not fall. Things fall towards him.",
+      "caption": "He does not fall. Things fall towards him.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "shake", "target": "", "arg": "0.2"},
+        {"do": "wait", "target": "", "arg": "0.8"}
+      ]
+    },
+    {
+      "id": "retire",
+      "when": ["cause:retire"],
+      "unless": [],
+      "add": ["shift_covered"],
+      "remove": [],
+      "reject": false,
+      "verdict": "",
+      "caption": "He reads the form twice. Then, very slowly, he hangs up the scythe.",
+      "beats": [
+        {"do": "ghost_to", "target": "here", "arg": ""},
+        {"do": "wait", "target": "", "arg": "1"},
+        {"do": "move", "target": "scythe", "arg": "time_clock"},
+        {"do": "sfx", "target": "", "arg": "punch_clock"}
+      ]
+    }
+  ],
+  "wish": {
+    "all": ["shift_covered"],
+    "none": []
+  },
+  "defaultVerdict": "You died. The wish did not come true.",
+  "solutions": [
+    {
+      "choices": [
+        {"field": "cause", "option": "retire"},
+        {"field": "place", "option": "desk"},
+        {"field": "shift", "option": "day"}
+      ]
+    },
+    {
+      "choices": [
+        {"field": "cause", "option": "retire"},
+        {"field": "place", "option": "desk"},
+        {"field": "shift", "option": "night"}
+      ]
+    },
+    {
+      "choices": [
+        {"field": "cause", "option": "retire"},
+        {"field": "place", "option": "desk"},
+        {"field": "shift", "option": "graveyard"}
+      ]
+    },
+    {
+      "choices": [
+        {"field": "cause", "option": "retire"},
+        {"field": "place", "option": "archive"},
+        {"field": "shift", "option": "day"}
+      ]
+    },
+    {
+      "choices": [
+        {"field": "cause", "option": "retire"},
+        {"field": "place", "option": "archive"},
+        {"field": "shift", "option": "night"}
+      ]
+    },
+    {
+      "choices": [
+        {"field": "cause", "option": "retire"},
+        {"field": "place", "option": "archive"},
+        {"field": "shift", "option": "graveyard"}
+      ]
+    },
+    {
+      "choices": [
+        {"field": "cause", "option": "retire"},
+        {"field": "place", "option": "door"},
+        {"field": "shift", "option": "day"}
+      ]
+    },
+    {
+      "choices": [
+        {"field": "cause", "option": "retire"},
+        {"field": "place", "option": "door"},
+        {"field": "shift", "option": "night"}
+      ]
+    },
+    {
+      "choices": [
+        {"field": "cause", "option": "retire"},
+        {"field": "place", "option": "door"},
+        {"field": "shift", "option": "graveyard"}
+      ]
+    }
+  ]
+}
