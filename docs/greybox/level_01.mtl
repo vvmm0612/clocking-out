@@ -1,0 +1,51 @@
+newmtl c_EBE6D1
+Kd 0.92 0.9 0.82
+
+newmtl c_19191F
+Kd 0.1 0.1 0.12
+
+newmtl c_4785AD
+Kd 0.28 0.52 0.68
+d 0.72
+
+newmtl c_D9F2FF
+Kd 0.85 0.95 1
+d 0.22
+
+newmtl c_FFEB99
+Kd 1 0.92 0.6
+d 0.28
+
+newmtl c_8F918F
+Kd 0.56 0.57 0.56
+
+newmtl c_9EB285
+Kd 0.62 0.7 0.52
+
+newmtl c_334C66
+Kd 0.2 0.3 0.4
+
+newmtl c_52545C
+Kd 0.32 0.33 0.36
+
+newmtl c_F0EBE0
+Kd 0.94 0.92 0.88
+
+newmtl c_D16154
+Kd 0.82 0.38 0.33
+
+newmtl c_8F694F
+Kd 0.56 0.41 0.31
+
+newmtl c_FFDB73
+Kd 1 0.86 0.45
+
+newmtl c_EDD6A3
+Kd 0.93 0.84 0.64
+
+newmtl c_B8B299
+Kd 0.72 0.7 0.6
+
+newmtl c_FF9E40
+Kd 1 0.62 0.25
+

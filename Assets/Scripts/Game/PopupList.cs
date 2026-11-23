@@ -71,10 +71,10 @@ namespace DeathNotice.Game
             Vector2 bottomLeftAbove = new Vector2(0f, 0f);
             if (anchorRect != null)
             {
-                anchorRect.GetWorldCorners(corners); // overlay canvas: world == screen
-                Vector2 bl = UIFactory.ScreenToLocal(layer, corners[0]);
-                Vector2 tl = UIFactory.ScreenToLocal(layer, corners[1]);
-                Vector2 tr = UIFactory.ScreenToLocal(layer, corners[2]);
+                anchorRect.GetWorldCorners(corners);
+                Vector2 bl = UIFactory.ScreenToLocal(layer, UIFactory.WorldToScreen(corners[0]));
+                Vector2 tl = UIFactory.ScreenToLocal(layer, UIFactory.WorldToScreen(corners[1]));
+                Vector2 tr = UIFactory.ScreenToLocal(layer, UIFactory.WorldToScreen(corners[2]));
                 width = Mathf.Max(160f, tr.x - tl.x);
                 topLeft = bl;
                 bottomLeftAbove = tl;

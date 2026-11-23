@@ -22,10 +22,14 @@ namespace DeathNotice.Game
 
         public static void RemoveCollider(GameObject go)
         {
-            Collider c = go.GetComponent<Collider>();
-            if (c == null) return;
-            if (Application.isPlaying) Object.Destroy(c);
-            else Object.DestroyImmediate(c); // edit-mode tests build stages too
+            Collider[] cs = go.GetComponents<Collider>();
+            for (int i = 0; i < cs.Length; i++)
+            {
+                // Disable first: Destroy is deferred to the end of the frame, and raycasts must not see it meanwhile.
+                cs[i].enabled = false;
+                if (Application.isPlaying) Object.Destroy(cs[i]);
+                else Object.DestroyImmediate(cs[i]); // edit-mode tests build stages too
+            }
         }
 
         private GameObject Prim(PrimitiveType type, Transform parent, string name, Vector3 pos, Vector3 scale, Vector3 euler, Material mat)
@@ -38,6 +42,13 @@ namespace DeathNotice.Game
             go.transform.localScale = scale;
             Renderer r = go.GetComponent<Renderer>();
             if (r != null) r.sharedMaterial = mat;
+            if (type == PrimitiveType.Cylinder)
+            {
+                // The primitive's CapsuleCollider turns flat discs (gallery floor, clock face) into big
+                // spheres that swallow the clue objects around them. A box matches the visual.
+                RemoveCollider(go);
+                go.AddComponent<BoxCollider>();
+            }
             return go;
         }
 
@@ -87,6 +98,7 @@ namespace DeathNotice.Game
         {
             GameObject g = Prim(PrimitiveType.Cube, parent, "water", pos, size, Vector3.zero, Mats.Transparent(c));
             RemoveCollider(g);
+            g.AddComponent<ProgramVisual>();
             g.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
             return g;
         }
@@ -95,6 +107,7 @@ namespace DeathNotice.Game
         {
             GameObject g = Prim(PrimitiveType.Cylinder, parent, "glass", pos, new Vector3(diameter, height * 0.5f, diameter), Vector3.zero, Mats.Transparent(c));
             RemoveCollider(g);
+            g.AddComponent<ProgramVisual>();
             g.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
             return g;
         }

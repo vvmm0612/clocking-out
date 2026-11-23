@@ -137,7 +137,7 @@ namespace DeathNotice.Game
             if (hovered != null)
             {
                 PlaceTooltip();
-                if (Input.GetMouseButtonDown(0) && form != null)
+                if (GameInput.GetMouseButtonDown(0) && form != null)
                 {
                     if (form.AddNote(hovered.text))
                     {
@@ -172,7 +172,7 @@ namespace DeathNotice.Game
 
         private Marker PickUnderMouse()
         {
-            Vector3 mouse = Input.mousePosition;
+            Vector3 mouse = GameInput.MousePosition;
             if (!cam.pixelRect.Contains(new Vector2(mouse.x, mouse.y))) return null;
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return null;
             Ray ray = cam.ScreenPointToRay(mouse);
@@ -237,7 +237,7 @@ namespace DeathNotice.Game
             if (tooltip == null || overlay == null) return;
             RectTransform parent = tooltip.parent as RectTransform;
             if (parent == null) return;
-            Vector2 local = UIFactory.ScreenToLocal(parent, Input.mousePosition);
+            Vector2 local = UIFactory.ScreenToLocal(parent, GameInput.MousePosition);
             Vector2 pos = local + new Vector2(18f, 12f);
             Rect pr = parent.rect;
             Vector2 size = tooltip.sizeDelta;

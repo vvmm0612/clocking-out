@@ -19,6 +19,17 @@ namespace DeathNotice.Game
         private RectTransform modal;
         private bool clickedToStart;
         private float screenShownAt;
+        private bool transitioning;
+
+        public const float FadeOutSeconds = 0.25f;
+        public const float FadeInSeconds = 0.3f;
+
+        /// <summary>Name of the full-screen page being shown ("Title", "Story", "Credits"), or "" inside a level.</summary>
+        public string ScreenName { get { return screen != null ? screen.name : ""; } }
+        public RectTransform ScreenRect { get { return screen; } }
+        public bool Transitioning { get { return transitioning; } }
+        public LevelController Level { get { return levelCtl; } }
+        public int LevelCount { get { return levels.Count; } }
 
         private static readonly Color ScreenBg = new Color(0.09f, 0.08f, 0.10f, 1f);
         private static readonly Color ScreenInk = new Color(0.95f, 0.92f, 0.84f, 1f);
@@ -51,10 +62,48 @@ namespace DeathNotice.Game
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Escape) && modal != null && GameRoot.ModalOpen)
+            if (GameInput.GetKeyDown(KeyCode.Escape) && modal != null && GameRoot.ModalOpen)
             {
                 CloseModal();
             }
+        }
+
+        // ---------------------------------------------------------------- transitions
+
+        /// <summary>Fade to black, run the action (which swaps screens / levels), fade back in.</summary>
+        public void Go(UnityAction action)
+        {
+            if (action == null) return;
+            if (transitioning || root == null || root.Fader == null) { if (!transitioning) action(); return; }
+            StartCoroutine(GoRoutine(action));
+        }
+
+        private System.Collections.IEnumerator GoRoutine(UnityAction action)
+        {
+            transitioning = true;
+            CanvasGroup g = root.Fader;
+            g.blocksRaycasts = true;
+            float t = 0f;
+            while (t < FadeOutSeconds)
+            {
+                t += Time.unscaledDeltaTime;
+                g.alpha = Mathf.Clamp01(t / FadeOutSeconds);
+                yield return null;
+            }
+            g.alpha = 1f;
+            try { action(); }
+            catch (Exception e) { Debug.LogError("[GameFlow] Transition action failed: " + e); }
+            yield return null;
+            t = 0f;
+            while (t < FadeInSeconds)
+            {
+                t += Time.unscaledDeltaTime;
+                g.alpha = 1f - Mathf.Clamp01(t / FadeInSeconds);
+                yield return null;
+            }
+            g.alpha = 0f;
+            g.blocksRaycasts = false;
+            transitioning = false;
         }
 
         // ---------------------------------------------------------------- screens
@@ -125,7 +174,7 @@ namespace DeathNotice.Game
             clickedToStart = true;
             AudioManager.PlaySfx("click");
             AudioManager.PlayBgm("title");
-            if (!Progress.HasSave) StartLevel(0);
+            if (!Progress.HasSave) Go(delegate { StartLevel(0); });
             else ShowTitle();
         }
 
@@ -138,11 +187,11 @@ namespace DeathNotice.Game
             {
                 int next = Mathf.Clamp(cleared, 0, levels.Count - 1);
                 string label = cleared >= levels.Count ? "Continue (all cases closed)" : "Continue — Case " + (next + 1);
-                UIButton cont = UIFactory.Button(s, "Continue", label, 22f, Blood, ScreenInk, delegate { StartLevel(next); });
+                UIButton cont = UIFactory.Button(s, "Continue", label, 22f, Blood, ScreenInk, delegate { Go(delegate { StartLevel(next); }); });
                 UIFactory.Box(cont.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(360f, 50f));
                 y -= 62f;
             }
-            UIButton start = UIFactory.Button(s, "NewGame", Progress.HasSave ? "Start from Case 1" : "Start", 20f, btnBg, UIFactory.Ink, delegate { StartLevel(0); });
+            UIButton start = UIFactory.Button(s, "NewGame", Progress.HasSave ? "Start from Case 1" : "Start", 20f, btnBg, UIFactory.Ink, delegate { Go(delegate { StartLevel(0); }); });
             UIFactory.Box(start.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(360f, 44f));
             y -= 56f;
             UIButton settings = UIFactory.Button(s, "Settings", "Settings", 20f, btnBg, UIFactory.Ink, OpenSettings);
@@ -164,7 +213,7 @@ namespace DeathNotice.Game
                     int best = Progress.GetBest(levels[i].id);
                     string seal = best > 0 ? "\n" + Progress.SealName(best) : "";
                     Color bg = best > 0 ? Progress.SealColor(best) : (unlocked ? btnBg : new Color(0.3f, 0.28f, 0.3f, 1f));
-                    UIButton b = UIFactory.Button(s, "Case" + (i + 1), (i + 1) + seal, best > 0 ? 15f : 22f, bg, UIFactory.Ink, delegate { StartLevel(idx); });
+                    UIButton b = UIFactory.Button(s, "Case" + (i + 1), (i + 1) + seal, best > 0 ? 15f : 22f, bg, UIFactory.Ink, delegate { Go(delegate { StartLevel(idx); }); });
                     UIFactory.Box(b.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-total * 0.5f + w * 0.5f + i * (w + gap), y), new Vector2(w, 56f));
                     b.interactable = unlocked;
                 }
@@ -202,8 +251,8 @@ namespace DeathNotice.Game
                 if (last) ShowCredits();
                 else StartLevel(index + 1);
             };
-            if (lvl != null && !string.IsNullOrEmpty(lvl.outro)) ShowStory(lvl.outro, "", next);
-            else next();
+            if (lvl != null && !string.IsNullOrEmpty(lvl.outro)) Go(delegate { ShowStory(lvl.outro, "", next); });
+            else Go(next);
         }
 
         private void ShowStory(string text, string speaker, UnityAction onContinue)
@@ -220,7 +269,7 @@ namespace DeathNotice.Game
             Label hint = UIFactory.Text(s, "Hint", "Click to continue", 16f, ScreenInkSoft, TextAnchor.MiddleCenter, false);
             UIFactory.Box(hint.rect, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(600f, 24f));
             hint.gameObject.AddComponent<Pulse>();
-            ClickAnywhere(s, delegate { AudioManager.PlaySfx("page"); onContinue(); });
+            ClickAnywhere(s, delegate { AudioManager.PlaySfx("page"); Go(onContinue); });
             AudioManager.PlaySfx("page");
         }
 
@@ -236,17 +285,17 @@ namespace DeathNotice.Game
             RectTransform s = NewScreen("Credits");
             Label title = UIFactory.Text(s, "Title", "CLOCKING OUT", 56f, ScreenInk, TextAnchor.MiddleCenter, true);
             UIFactory.Box(title.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 200f), new Vector2(900f, 80f));
-            string body =
-                "Made in eight days for Game Off 2026 (theme: SHIFT)\n\n" +
-                "Design, code and greybox art\nthe Clocking Out team\n\n" +
-                "Built with Unity\n\n" +
-                "Thank you for filing with us.\nYour shift begins now.";
+            Label by = UIFactory.Text(s, "Byline", "A game by vvmm0612 — made for Game Off 2026 (theme: SHIFT)", 24f, ScreenInk, TextAnchor.MiddleCenter, false);
+            UIFactory.Box(by.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 110f), new Vector2(1000f, 36f));
+            Label ai = UIFactory.Text(s, "AiNote", "Code, writing, art and audio were made with the help of generative AI tools. See the repository for details.", 17f, ScreenInkSoft, TextAnchor.MiddleCenter, false);
+            UIFactory.Box(ai.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 72f), new Vector2(1000f, 30f));
+            string body = "Built with Unity\n\nThank you for filing with us.\nYour shift begins now.";
             Label text = UIFactory.Text(s, "Body", body, 22f, ScreenInkSoft, TextAnchor.UpperCenter, false);
-            UIFactory.Box(text.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Vector2(900f, 360f));
+            UIFactory.Box(text.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Vector2(900f, 180f));
             Label hint = UIFactory.Text(s, "Hint", "Click to return to the title", 16f, ScreenInkSoft, TextAnchor.MiddleCenter, false);
             UIFactory.Box(hint.rect, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(600f, 24f));
             hint.gameObject.AddComponent<Pulse>();
-            ClickAnywhere(s, ShowTitle);
+            ClickAnywhere(s, delegate { Go(ShowTitle); });
         }
 
         // ---------------------------------------------------------------- modals
@@ -310,7 +359,7 @@ namespace DeathNotice.Game
                 CloseModal,
                 OpenSettings,
                 delegate { CloseModal(); levelCtl.RestartLevel(); },
-                ShowTitle
+                delegate { Go(ShowTitle); }
             };
             for (int i = 0; i < names.Length; i++)
             {

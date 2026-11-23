@@ -55,6 +55,10 @@ namespace DeathNotice.Game
         public readonly List<Spin> spins = new List<Spin>();
         public Action<bool> onToggle;
         public Action onLight;
+        /// <summary>For toggles that move a part (hinge, signal arm): the greybox transform they rotate. A replacement model's "toggle" part follows it.</summary>
+        public Transform toggleMotion;
+        /// <summary>Set by a model replacement: this goes self-lit when the anchor lights up.</summary>
+        public GameObject lightTarget;
         public float spinSpeed;
 
         public Vector3 StandPoint { get { return transform.position; } }
@@ -132,6 +136,7 @@ namespace DeathNotice.Game
 
         public void LightUp()
         {
+            if (lightTarget != null) ModelSwap.Glow(lightTarget);
             if (onLight != null) { onLight(); return; }
             Light l = GetComponentInChildren<Light>(true);
             if (l == null)
@@ -156,11 +161,20 @@ namespace DeathNotice.Game
         public Transform visual;
         public Renderer body;
         public Material mat;
+        /// <summary>All tintable materials (one for the greybox capsule, several for a model).</summary>
+        public readonly List<Material> mats = new List<Material>();
         public Color baseColor;
         public float height = 0.7f;
         public bool transparent;
 
         public static Figure Create(Transform parent, string name, Color color, float height, bool transparent, Color? hat)
+        {
+            return Create(parent, name, color, height, transparent, hat, null);
+        }
+
+        /// <summary>With a model (Resources/Models/common/player or death): the model replaces capsule, eyes and hat,
+        /// keeps its textures, and is tinted with "color" (half-transparent for the ghost). No scaling.</summary>
+        public static Figure Create(Transform parent, string name, Color color, float height, bool transparent, Color? hat, GameObject model)
         {
             var root = new GameObject(name);
             root.transform.SetParent(parent, false);
@@ -173,6 +187,36 @@ namespace DeathNotice.Game
             vis.transform.SetParent(root.transform, false);
             f.visual = vis.transform;
 
+            if (model != null)
+            {
+                GameObject inst = UnityEngine.Object.Instantiate(model, vis.transform, false);
+                inst.name = ModelSwap.ModelChildName;
+                inst.SetActive(true);
+                inst.transform.localPosition = Vector3.zero;
+                inst.transform.localRotation = Quaternion.identity;
+                inst.transform.localScale = Vector3.one;
+                foreach (Collider c in inst.GetComponentsInChildren<Collider>(true)) c.enabled = false;
+                foreach (Renderer r in inst.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r is ParticleSystemRenderer) continue;
+                    Material[] src = r.sharedMaterials;
+                    var dst = new Material[Mathf.Max(1, src.Length)];
+                    for (int i = 0; i < dst.Length; i++)
+                    {
+                        Material s = i < src.Length ? src[i] : null;
+                        Material m = transparent ? Mats.TransparentUnique(color) : Mats.LitUnique(color);
+                        if (m != null && s != null && s.mainTexture != null) m.mainTexture = s.mainTexture;
+                        dst[i] = m;
+                        f.mats.Add(m);
+                    }
+                    r.sharedMaterials = dst;
+                    r.shadowCastingMode = transparent ? UnityEngine.Rendering.ShadowCastingMode.Off : UnityEngine.Rendering.ShadowCastingMode.On;
+                    if (f.body == null) f.body = r;
+                }
+                f.mat = f.mats.Count > 0 ? f.mats[0] : null;
+                return f;
+            }
+
             GameObject bodyGo = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             bodyGo.name = "Body";
             StageKit.RemoveCollider(bodyGo);
@@ -182,6 +226,7 @@ namespace DeathNotice.Game
             f.body = bodyGo.GetComponent<Renderer>();
             f.mat = transparent ? Mats.TransparentUnique(color) : Mats.LitUnique(color);
             f.body.sharedMaterial = f.mat;
+            f.mats.Add(f.mat);
             f.body.shadowCastingMode = transparent ? UnityEngine.Rendering.ShadowCastingMode.Off : UnityEngine.Rendering.ShadowCastingMode.On;
 
             if (!transparent)
@@ -213,7 +258,7 @@ namespace DeathNotice.Game
 
         public void SetColor(Color c)
         {
-            if (mat != null) Mats.SetColor(mat, c);
+            for (int i = 0; i < mats.Count; i++) Mats.SetColor(mats[i], c);
         }
 
         public void ResetPose()

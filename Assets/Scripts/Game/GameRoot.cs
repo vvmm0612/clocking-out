@@ -29,13 +29,23 @@ namespace DeathNotice.Game
         public RectTransform ScreenLayer { get; private set; }
         public RectTransform ModalLayer { get; private set; }
         public RectTransform PopupLayer { get; private set; }
+        /// <summary>Full-screen black overlay used for fade transitions (alpha 0 = invisible).</summary>
+        public CanvasGroup Fader { get; private set; }
+        public CanvasScaler Scaler { get; private set; }
+
+        /// <summary>
+        /// The canvas is never narrower than this many design units: 720 tall on wide screens, and on
+        /// narrower ones (4:3, portrait) it matches this width instead, so the 500-unit paper and the HUD
+        /// on its left never overlap.
+        /// </summary>
+        public const float MinCanvasWidth = 1100f;
         public Transform World { get; private set; }
 
         private float lastCanvasWidth = -1f;
 
         public static bool ShiftHeld
         {
-            get { return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift); }
+            get { return GameInput.ShiftHeld; }
         }
 
         /// <summary>True while a modal panel (settings, menu, certificate) is up.</summary>
@@ -162,6 +172,7 @@ namespace DeathNotice.Game
             Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             Canvas.sortingOrder = 10;
             CanvasScaler scaler = canvasGo.AddComponent<CanvasScaler>();
+            Scaler = scaler;
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(RefWidth, RefHeight);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
@@ -185,6 +196,14 @@ namespace DeathNotice.Game
             UIFactory.Stretch(ModalLayer, 0f, 0f, 0f, 0f);
             PopupLayer = UIFactory.Rect(CanvasRect, "Popups");
             UIFactory.Stretch(PopupLayer, 0f, 0f, 0f, 0f);
+
+            Image fade = UIFactory.Panel(CanvasRect, "Fader", new Color(0.04f, 0.035f, 0.045f, 1f), true);
+            UIFactory.Stretch(fade.rectTransform, 0f, 0f, 0f, 0f);
+            Fader = fade.gameObject.AddComponent<CanvasGroup>();
+            Fader.alpha = 0f;
+            Fader.blocksRaycasts = false;
+            Fader.interactable = false;
+            UpdateScaler();
         }
 
         private void Update()
@@ -193,8 +212,23 @@ namespace DeathNotice.Game
         }
 
         /// <summary>Keeps the paper at a fixed design width on the right and the 3D view in the rest.</summary>
+        /// <summary>Match height on wide screens, width (MinCanvasWidth) on narrow ones.</summary>
+        private void UpdateScaler()
+        {
+            if (Scaler == null || Canvas == null) return;
+            Vector2 px = Canvas.renderingDisplaySize;
+            if (px.x < 1f || px.y < 1f) px = new Vector2(Screen.width, Screen.height);
+            if (px.x < 1f || px.y < 1f) return;
+            bool narrow = px.x / px.y < MinCanvasWidth / RefHeight;
+            Vector2 refRes = new Vector2(MinCanvasWidth, RefHeight);
+            float match = narrow ? 0f : 1f;
+            if (Scaler.referenceResolution != refRes) Scaler.referenceResolution = refRes;
+            if (!Mathf.Approximately(Scaler.matchWidthOrHeight, match)) Scaler.matchWidthOrHeight = match;
+        }
+
         private void UpdateLayout()
         {
+            UpdateScaler();
             if (CanvasRect == null) return;
             float canvasW = CanvasRect.rect.width;
             if (canvasW <= 1f) return;

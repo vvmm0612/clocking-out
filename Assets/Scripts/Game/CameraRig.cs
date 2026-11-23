@@ -10,6 +10,8 @@ namespace DeathNotice.Game
     {
         public Camera cam;
         public float stageFraction = 0.6f;
+        /// <summary>Fraction of the screen height kept free at the bottom (the caption strip during playback).</summary>
+        public float bottomInset;
 
         private Vector3 focus = new Vector3(0f, 1.5f, 0.5f);
         private float distance = 15f;
@@ -38,7 +40,8 @@ namespace DeathNotice.Game
         {
             if (cam == null) return;
             float frac = Mathf.Clamp(stageFraction, 0.2f, 1f);
-            Rect r = new Rect(0f, 0f, frac, 1f);
+            float inset = Mathf.Clamp(bottomInset, 0f, 0.5f);
+            Rect r = new Rect(0f, inset, frac, 1f - inset);
             if (cam.rect != r) cam.rect = r;
 
             t += Time.deltaTime;

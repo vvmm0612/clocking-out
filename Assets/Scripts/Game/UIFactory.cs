@@ -392,12 +392,64 @@ namespace DeathNotice.Game
             return content;
         }
 
-        /// <summary>Converts a screen-space point to local coordinates of the given rect (overlay canvas).</summary>
+        /// <summary>Camera of the main canvas: null for Screen Space - Overlay (the normal case).</summary>
+        public static Camera CanvasCamera
+        {
+            get
+            {
+                GameRoot r = GameRoot.Instance;
+                if (r == null || r.Canvas == null || r.Canvas.renderMode == RenderMode.ScreenSpaceOverlay) return null;
+                return r.Canvas.worldCamera;
+            }
+        }
+
+        /// <summary>Converts a screen-space point to local coordinates of the given rect.</summary>
         public static Vector2 ScreenToLocal(RectTransform rt, Vector2 screen)
         {
             Vector2 local;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, screen, null, out local);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, screen, CanvasCamera, out local);
             return local;
+        }
+
+        /// <summary>World position of a UI element to screen pixels (identity for overlay canvases).</summary>
+        public static Vector2 WorldToScreen(Vector3 world)
+        {
+            return RectTransformUtility.WorldToScreenPoint(CanvasCamera, world);
+        }
+
+        private static Sprite circle;
+
+        /// <summary>A white anti-aliased disc (procedural, so nothing extra ships with the build).</summary>
+        public static Sprite Circle()
+        {
+            if (circle != null) return circle;
+            const int n = 128;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            var px = new Color32[n * n];
+            float r = n * 0.5f - 1f;
+            for (int y = 0; y < n; y++)
+            {
+                for (int x = 0; x < n; x++)
+                {
+                    float dx = x + 0.5f - n * 0.5f;
+                    float dy = y + 0.5f - n * 0.5f;
+                    float a = Mathf.Clamp01(r - Mathf.Sqrt(dx * dx + dy * dy) + 0.5f);
+                    px[y * n + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+                }
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            circle = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
+            return circle;
+        }
+
+        public static Image Disc(Transform parent, string name, Color color, Vector2 center, float diameter)
+        {
+            Image img = Panel(parent, name, color, false);
+            img.sprite = Circle();
+            Box(img.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), center, new Vector2(diameter, diameter));
+            return img;
         }
 
         public static void DestroyChildren(Transform t)

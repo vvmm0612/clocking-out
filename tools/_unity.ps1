@@ -1,4 +1,4 @@
-﻿# Shared helpers for tools/*.ps1. Dot-source only:  . "$PSScriptRoot\_unity.ps1"
+# Shared helpers for tools/*.ps1. Dot-source only:  . "$PSScriptRoot\_unity.ps1"
 # Override the editor location with $env:UNITY_EXE if your install differs.
 
 $ErrorActionPreference = 'Stop'
@@ -41,9 +41,11 @@ function Exit-ProjectPath {
 }
 
 # Runs Unity in batchmode, waits, prints elapsed time and returns the exit code.
-function Invoke-Unity([string]$ProjectPath, [string]$LogFile, [string[]]$ExtraArgs) {
+# -Graphics keeps the GPU (no -nographics): needed for screenshots / RenderTexture readback.
+function Invoke-Unity([string]$ProjectPath, [string]$LogFile, [string[]]$ExtraArgs, [switch]$Graphics) {
     New-Item -ItemType Directory -Force (Split-Path $LogFile) | Out-Null
-    $argv = @('-batchmode', '-nographics', '-projectPath', "`"$ProjectPath`"", '-buildTarget', 'WebGL', '-logFile', "`"$LogFile`"") + $ExtraArgs
+    $gfx = if ($Graphics) { @() } else { @('-nographics') }
+    $argv = @('-batchmode') + $gfx + @('-projectPath', "`"$ProjectPath`"", '-buildTarget', 'WebGL', '-logFile', "`"$LogFile`"") + $ExtraArgs
     Write-Host ">> `"$script:UnityExe`" $($argv -join ' ')"
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $p = Start-Process -FilePath $script:UnityExe -ArgumentList $argv -PassThru -Wait -NoNewWindow

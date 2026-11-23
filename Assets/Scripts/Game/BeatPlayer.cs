@@ -18,6 +18,9 @@ namespace DeathNotice.Game
         public Action<string> showCaption;
 
         public bool Playing { get; private set; }
+        /// <summary>Index of the event being played (-1 before the first), and how many there are.</summary>
+        public int EventIndex { get; private set; }
+        public int EventCount { get; private set; }
 
         private Stage stage;
         private bool advance;
@@ -33,7 +36,7 @@ namespace DeathNotice.Game
             get
             {
                 if (skipAll) return 100f;
-                bool held = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+                bool held = GameInput.GetKey(KeyCode.Space) || GameInput.GetMouseButton(0);
                 return held ? 3f : 1f;
             }
         }
@@ -47,6 +50,8 @@ namespace DeathNotice.Game
             finished = onDone;
             finishedCalled = false;
             Playing = true;
+            EventIndex = -1;
+            EventCount = result != null && result.events != null ? result.events.Count : 0;
             ignoreInputUntil = Time.unscaledTime + 0.25f;
             StartCoroutine(Run(result));
         }
@@ -68,11 +73,11 @@ namespace DeathNotice.Game
         {
             if (!Playing || GameRoot.ModalOpen) return;
             if (Time.unscaledTime < ignoreInputUntil) return;
-            if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return))
+            if (GameInput.GetKeyDown(KeyCode.Space) || GameInput.GetMouseButtonDown(0) || GameInput.GetKeyDown(KeyCode.Return))
             {
                 advance = true;
             }
-            if (Input.GetKeyDown(KeyCode.Escape)) skipAll = true;
+            if (GameInput.GetKeyDown(KeyCode.Escape)) skipAll = true;
         }
 
         private IEnumerator Run(SimResult result)
@@ -94,6 +99,7 @@ namespace DeathNotice.Game
             {
                 SimEvent ev = result.events[i];
                 if (ev == null) continue;
+                EventIndex = i;
                 advance = false;
                 ignoreInputUntil = Time.unscaledTime + 0.15f;
                 string caption = ev.caption ?? "";

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>{{{ PRODUCT_NAME }}}</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #161418; }
+    body { font-family: Georgia, "Times New Roman", serif; color: #f2ebd7; }
+    #game { position: fixed; inset: 0; width: 100%; height: 100%; }
+    #unity-canvas { display: block; width: 100%; height: 100%; background: #161418; outline: none; touch-action: none; }
+    #loader { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+              background: #161418; transition: opacity 0.4s ease; z-index: 2; }
+    #loader.done { opacity: 0; pointer-events: none; }
+    #loader h1 { margin: 0 0 6px 0; font-size: clamp(26px, 6vw, 56px); letter-spacing: 0.12em; font-weight: bold; }
+    #loader .rule { width: min(360px, 70vw); height: 3px; background: #9e3329; margin: 0 0 22px 0; }
+    #loader .bar { width: min(320px, 64vw); height: 6px; background: #2c282e; border-radius: 3px; overflow: hidden; }
+    #loader .fill { width: 0%; height: 100%; background: #f2ebd7; transition: width 0.15s linear; }
+    #loader .note { margin-top: 12px; font-size: 13px; color: #a89f92; letter-spacing: 0.05em; min-height: 1.2em; text-align: center; padding: 0 16px; }
+    #warning { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); z-index: 3; max-width: 90vw;
+               font: 13px sans-serif; color: #fff; }
+    #warning div { padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div id="game"><canvas id="unity-canvas" tabindex="-1"></canvas></div>
+  <div id="loader">
+    <h1>CLOCKING OUT</h1>
+    <div class="rule"></div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <div class="note" id="note">Filing your paperwork&hellip;</div>
+  </div>
+  <div id="warning"></div>
+  <script>
+    var canvas = document.getElementById("unity-canvas");
+    var loader = document.getElementById("loader");
+    var fill = document.getElementById("fill");
+    var note = document.getElementById("note");
+    var warning = document.getElementById("warning");
+
+    // Errors and warnings from the engine (e.g. WebGL not available) appear as a small banner.
+    function showBanner(msg, type) {
+      if (type === "warning" && !/WebGL|memory|compressed/i.test(msg)) { console.warn(msg); return; }
+      var div = document.createElement("div");
+      div.textContent = msg;
+      div.style.background = type === "error" ? "#9e3329" : "#6b5a20";
+      warning.appendChild(div);
+      if (type !== "error") setTimeout(function () { if (div.parentNode) div.parentNode.removeChild(div); }, 6000);
+    }
+
+    // Canvas pixel size follows the window; Unity reads devicePixelRatio from the config below (capped at 2).
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    var buildUrl = "Build";
+    var config = {
+      dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+      frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_WASM
+      codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#endif
+#if MEMORY_FILENAME
+      memoryUrl: buildUrl + "/{{{ MEMORY_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+      symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+      productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+      productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+      showBanner: showBanner,
+      devicePixelRatio: dpr,
+      matchWebGLToCanvasSize: true
+    };
+
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      var meta = document.createElement("meta");
+      meta.name = "viewport";
+      meta.content = "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
+      document.head.appendChild(meta);
+    }
+
+    // Keep keyboard focus on the game inside itch.io's iframe (Shift must reach Unity).
+    canvas.addEventListener("pointerdown", function () { canvas.focus(); });
+    window.addEventListener("focus", function () { canvas.focus(); });
+
+    var script = document.createElement("script");
+    script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
+    script.onload = function () {
+      createUnityInstance(canvas, config, function (progress) {
+        fill.style.width = Math.round(progress * 100) + "%";
+        if (progress >= 0.9) note.innerHTML = "Stamping&hellip;";
+      }).then(function (unityInstance) {
+        fill.style.width = "100%";
+        loader.classList.add("done");
+        setTimeout(function () { loader.style.display = "none"; }, 450);
+        canvas.focus();
+      }).catch(function (message) {
+        note.textContent = "Could not start the game: " + message;
+        showBanner(String(message), "error");
+      });
+    };
+    script.onerror = function () { note.textContent = "Could not load the game files."; };
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>

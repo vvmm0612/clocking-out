@@ -108,6 +108,34 @@ namespace DeathNotice.Game
             return m;
         }
 
+        private static readonly Dictionary<int, Material> modelCache = new Dictionary<int, Material>();
+
+        /// <summary>
+        /// A model's material moved onto the shipped Lit template: same color and main texture, but a shader
+        /// that is guaranteed to be in the build (imported FBX materials may reference stripped shaders).
+        /// Cached per source material.
+        /// </summary>
+        public static Material FromModel(Material src)
+        {
+            Init();
+            if (src == null) return Lit(Color.white);
+            int k = src.GetInstanceID();
+            Material m;
+            if (modelCache.TryGetValue(k, out m) && m != null) return m;
+            m = Make(litTemplate, GetColor(src));
+            if (m != null)
+            {
+                Texture tex = null;
+                if (src.HasProperty("_BaseMap")) tex = src.GetTexture("_BaseMap");
+                if (tex == null && src.HasProperty("_MainTex")) tex = src.GetTexture("_MainTex");
+                if (tex != null) m.mainTexture = tex;
+                if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.15f);
+                m.name = src.name + " (project)";
+            }
+            modelCache[k] = m;
+            return m;
+        }
+
         /// <summary>Shared unlit (self-lit, "glowing") material.</summary>
         public static Material Glow(Color c)
         {

@@ -224,6 +224,7 @@ namespace DeathNotice.Game
                 k.Box(gauge.transform, new Vector3(-2.3f, 0.3f + i * 0.45f, 1.41f), new Vector3(0.16f, 0.04f, 0.02f), p.accent);
             }
             GameObject marker = k.GlowBox(gauge.transform, new Vector3(-2.3f, 0.4f, 1.38f), new Vector3(0.22f, 0.08f, 0.04f), C(0.3f, 0.75f, 1f));
+            marker.AddComponent<ProgramVisual>(); // water-level needle: drawn by the program, not by the model
 
             k.stage.RegisterState("water_level", "low", delegate (string v)
             {
@@ -371,8 +372,9 @@ namespace DeathNotice.Game
             k.Box(ledger.transform, new Vector3(2.8f, 0.84f, 2.25f), new Vector3(0.5f, 0.09f, 0.36f), C(0.55f, 0.18f, 0.2f));
             ledger.fxOffset = new Vector3(0f, 0.9f, 0.25f);
 
-            AnchorTag sign = k.Anchor("sign", new Vector3(0.75f, 0.06f, 2.9f));
-            k.Paper(sign.transform, new Vector3(0.75f, 2.3f, 3.08f), new Vector3(0.6f, 0.4f, 0.04f), Vector3.zero);
+            // Low enough to be seen under the attic floor from the camera.
+            AnchorTag sign = k.Anchor("sign", new Vector3(0.42f, 0.06f, 2.9f));
+            k.Paper(sign.transform, new Vector3(0.42f, 1.4f, 3.08f), new Vector3(0.5f, 0.36f, 0.04f), Vector3.zero);
 
             // Attic
             k.Box(null, new Vector3(1.875f, 3.05f, 1.5f), new Vector3(3.75f, 0.12f, 3.4f), p.b);
@@ -430,7 +432,7 @@ namespace DeathNotice.Game
             k.Plinth(new Vector3(-0.75f, -0.2f, 0.5f), new Vector3(10.5f, 0.4f, 7f), p.ground, Color.Lerp(p.ground, p.dark, 0.4f));
             k.Box(null, new Vector3(5.4f, -1.4f, 0.5f), new Vector3(1.8f, 0.2f, 7f), C(0.1f, 0.1f, 0.14f));
             k.Plinth(new Vector3(6.8f, -0.2f, 0.5f), new Vector3(1.0f, 0.4f, 7f), p.ground, Color.Lerp(p.ground, p.dark, 0.4f));
-            k.GlowBall(null, new Vector3(-4.5f, 6.5f, 7f), 0.9f, C(0.95f, 0.95f, 0.85f));
+            k.GlowBall(null, new Vector3(8.2f, 4.6f, 7f), 0.8f, C(0.95f, 0.95f, 0.85f));
 
             AnchorTag track = k.Anchor("track", new Vector3(2.6f, 0.12f, 0f));
             Rails(k, track.transform, new Vector3(-6f, 0f, 0f), new Vector3(4.5f, 0f, 0f), p);
@@ -468,25 +470,26 @@ namespace DeathNotice.Game
             k.Box(freight.transform, new Vector3(3.1f, 0.6f, 1.8f), new Vector3(1.1f, 0.75f, 0.85f), C(0.48f, 0.33f, 0.27f));
             freight.fxOffset = new Vector3(0.8f, 0.9f, 0f);
 
-            // Signal box with gallery over the points lever
-            k.Box(null, new Vector3(-3.3f, 1.1f, -2.4f), new Vector3(1.6f, 2.2f, 1.4f), p.c);
-            k.Box(null, new Vector3(-3.3f, 2.9f, -2.4f), new Vector3(1.6f, 1.2f, 1.4f), Color.Lerp(p.c, p.a, 0.3f));
-            k.GlowBox(null, new Vector3(-3.3f, 3.0f, -1.69f), new Vector3(1.2f, 0.5f, 0.03f), C(1f, 0.85f, 0.55f));
-            k.BoxR(null, new Vector3(-3.3f, 3.7f, -2.4f), new Vector3(1.9f, 0.12f, 1.7f), new Vector3(0f, 0f, 0f), p.dark);
+            // Signal box behind the line, its gallery facing the camera over the points lever
+            // (in front of the line it hid its own gallery, roster and lever from view).
+            k.Box(null, new Vector3(-4.4f, 1.1f, 2.6f), new Vector3(1.6f, 2.2f, 1.4f), p.c);
+            k.Box(null, new Vector3(-4.4f, 2.9f, 2.6f), new Vector3(1.6f, 1.2f, 1.4f), Color.Lerp(p.c, p.a, 0.3f));
+            k.GlowBox(null, new Vector3(-4.4f, 3.0f, 1.89f), new Vector3(1.2f, 0.5f, 0.03f), C(1f, 0.85f, 0.55f));
+            k.BoxR(null, new Vector3(-4.4f, 3.7f, 2.6f), new Vector3(1.9f, 0.12f, 1.7f), new Vector3(0f, 0f, 0f), p.dark);
             for (int i = 0; i < 5; i++)
             {
-                k.Box(null, new Vector3(-2.35f, 0.2f + i * 0.42f, -2.9f + i * 0.2f), new Vector3(0.4f, 0.08f, 0.3f), p.b);
+                k.Box(null, new Vector3(-3.35f, 0.2f + i * 0.42f, 2.9f - i * 0.25f), new Vector3(0.4f, 0.08f, 0.3f), p.b);
             }
-            AnchorTag box = k.Anchor("box", new Vector3(-3.3f, 2.32f, -1.55f));
-            k.Box(box.transform, new Vector3(-3.3f, 2.25f, -1.5f), new Vector3(1.6f, 0.1f, 0.5f), p.b);
-            k.Box(box.transform, new Vector3(-3.3f, 2.55f, -1.27f), new Vector3(1.6f, 0.05f, 0.05f), p.dark);
+            AnchorTag box = k.Anchor("box", new Vector3(-4.0f, 2.32f, 1.65f));
+            k.Box(box.transform, new Vector3(-4.4f, 2.25f, 1.65f), new Vector3(1.6f, 0.1f, 0.5f), p.b);
+            k.Box(box.transform, new Vector3(-4.4f, 2.55f, 1.43f), new Vector3(1.6f, 0.05f, 0.05f), p.dark);
 
-            AnchorTag roster = k.Anchor("roster", new Vector3(-2.85f, 0.06f, -1.55f));
-            k.Paper(roster.transform, new Vector3(-2.85f, 1.2f, -1.72f), new Vector3(0.5f, 0.6f, 0.04f), Vector3.zero);
+            AnchorTag roster = k.Anchor("roster", new Vector3(-4.85f, 0.06f, 1.7f));
+            k.Paper(roster.transform, new Vector3(-4.85f, 1.2f, 1.88f), new Vector3(0.5f, 0.6f, 0.04f), Vector3.zero);
 
-            AnchorTag lever = k.Anchor("lever", new Vector3(-3.4f, 0.06f, -0.75f));
-            k.Box(lever.transform, new Vector3(-3.4f, 0.1f, -0.75f), new Vector3(0.4f, 0.12f, 0.25f), p.dark);
-            k.BoxR(lever.transform, new Vector3(-3.35f, 0.4f, -0.75f), new Vector3(0.07f, 0.6f, 0.07f), new Vector3(0f, 0f, -20f), p.accent);
+            AnchorTag lever = k.Anchor("lever", new Vector3(-3.55f, 0.06f, 0.95f));
+            k.Box(lever.transform, new Vector3(-3.55f, 0.1f, 0.95f), new Vector3(0.4f, 0.12f, 0.25f), p.dark);
+            k.BoxR(lever.transform, new Vector3(-3.5f, 0.4f, 0.95f), new Vector3(0.07f, 0.6f, 0.07f), new Vector3(0f, 0f, -20f), p.accent);
             lever.fxOffset = new Vector3(0f, 0.4f, 0f);
 
             // Platform
@@ -573,6 +576,7 @@ namespace DeathNotice.Game
             stripe.transform.localScale = new Vector3(0.12f, 1.05f, 1.1f);
             GameObject armLamp = k.GlowBall(arm.transform, new Vector3(4.3f, 3.35f, 0.8f), 0.16f, C(0.35f, 0.3f, 0.3f));
             armPivot.localRotation = Quaternion.Euler(0f, 0f, -80f);
+            arm.toggleMotion = armPivot;
             arm.onToggle = delegate (bool on)
             {
                 if (armPivot != null) armPivot.localRotation = Quaternion.Euler(0f, 0f, on ? 0f : -80f);
@@ -644,8 +648,9 @@ namespace DeathNotice.Game
             k.GlowBox(null, new Vector3(-1.75f, 4.75f, 1.9f), new Vector3(0.14f, 0.22f, 0.14f), C(1f, 0.7f, 0.35f));
             k.Point(null, new Vector3(-1.5f, 5.0f, 1.5f), C(1f, 0.72f, 0.4f), 4f, 1.6f);
 
-            AnchorTag sheet = k.Anchor("round_sheet", new Vector3(-1.45f, 4.18f, 2.0f));
-            k.Paper(sheet.transform, new Vector3(-1.45f, 5.6f, 2.26f), new Vector3(0.6f, 0.8f, 0.04f), Vector3.zero);
+            // Left of the big gear (whose collider is a square) so it can be hovered.
+            AnchorTag sheet = k.Anchor("round_sheet", new Vector3(-1.78f, 4.18f, 2.0f));
+            k.Paper(sheet.transform, new Vector3(-1.78f, 5.65f, 2.26f), new Vector3(0.5f, 0.75f, 0.04f), Vector3.zero);
 
             // Pendulum pit
             k.Box(null, new Vector3(0f, 0.2f, 0.4f), new Vector3(2.4f, 0.4f, 0.12f), p.a);
@@ -681,6 +686,7 @@ namespace DeathNotice.Game
             {
                 if (hinge != null) hinge.localRotation = (v == "open") ? Quaternion.Euler(-100f, 0f, 0f) : Quaternion.identity;
             });
+            hatch.toggleMotion = hinge;
             hatch.onToggle = delegate (bool on)
             {
                 if (hinge != null) hinge.localRotation = on ? Quaternion.Euler(-100f, 0f, 0f) : Quaternion.identity;
@@ -756,7 +762,6 @@ namespace DeathNotice.Game
             k.BoxR(scythe.transform, new Vector3(1.62f, 1.1f, 0.45f), new Vector3(0.07f, 2.2f, 0.07f), new Vector3(0f, 0f, -6f), C(0.35f, 0.24f, 0.18f));
             k.BoxR(scythe.transform, new Vector3(1.95f, 2.12f, 0.45f), new Vector3(0.8f, 0.09f, 0.03f), new Vector3(0f, 0f, -22f), C(0.82f, 0.84f, 0.88f));
 
-            k.GlowBall(null, new Vector3(-0.5f, 3.0f, 1.0f), 0.3f, C(0.85f, 0.85f, 0.95f));
             k.Point(null, new Vector3(-0.5f, 2.8f, 1.0f), C(0.85f, 0.85f, 1f), 7f, 1.0f);
         }
 

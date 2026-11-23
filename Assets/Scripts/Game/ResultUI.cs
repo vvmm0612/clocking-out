@@ -86,66 +86,164 @@ namespace DeathNotice.Game
             Image dim = UIFactory.Blocker(modalLayer, "Certificate", new Color(0f, 0f, 0f, 0.6f), null);
             RectTransform root = dim.rectTransform;
 
-            Image sheet = UIFactory.Panel(root, "Sheet", new Color(0.97f, 0.94f, 0.86f, 1f), true);
+            Color sheetColor = new Color(0.97f, 0.94f, 0.86f, 1f);
+            Color frame = new Color(0.35f, 0.28f, 0.22f, 1f);
+            Image sheet = UIFactory.Panel(root, "Sheet", sheetColor, true);
             RectTransform s = sheet.rectTransform;
-            UIFactory.Box(s, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(620f, 620f));
-            Border(s, 4f, new Color(0.35f, 0.28f, 0.22f, 1f));
+            const float width = 620f;
+            UIFactory.Box(s, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(width, 600f));
+            Border(s, 4f, frame);
+            RectTransform inner = UIFactory.Rect(s, "InnerFrame");
+            UIFactory.Stretch(inner, 10f, 10f, 10f, 10f);
+            Border(inner, 1f, new Color(frame.r, frame.g, frame.b, 0.55f));
 
-            float y = 22f;
+            float y = 28f;
             Label title = UIFactory.Text(s, "Title", "CERTIFICATE OF DEATH", 32f, UIFactory.Ink, TextAnchor.MiddleCenter, true);
-            UIFactory.TopRow(title.rect, y, 40f, 20f, 20f);
-            y += 44f;
+            UIFactory.TopRow(title.rect, y, 40f, 30f, 30f);
+            y += 42f;
             Label sub = UIFactory.Text(s, "Sub", "Department of Final Arrangements — Form 1-D, as filed", 14f, UIFactory.InkSoft, TextAnchor.MiddleCenter, false);
-            UIFactory.TopRow(sub.rect, y, 20f, 20f, 20f);
-            y += 34f;
+            UIFactory.TopRow(sub.rect, y, 20f, 30f, 30f);
+            y += 30f;
+            Rule(s, "Rule1", y, 90f, frame);
+            y += 16f;
 
             Label certifies = UIFactory.Text(s, "Certifies", "This certifies that", 15f, UIFactory.InkSoft, TextAnchor.MiddleCenter, false);
-            UIFactory.TopRow(certifies.rect, y, 20f, 20f, 20f);
+            UIFactory.TopRow(certifies.rect, y, 20f, 30f, 30f);
             y += 22f;
-            Label name = UIFactory.Text(s, "Name", level != null ? level.deceased : "", 26f, UIFactory.Ink, TextAnchor.MiddleCenter, true);
-            UIFactory.TopRow(name.rect, y, 34f, 20f, 20f);
+            Label name = UIFactory.Text(s, "Name", level != null ? level.deceased : "", 27f, UIFactory.Ink, TextAnchor.MiddleCenter, true);
+            UIFactory.TopRow(name.rect, y, 36f, 30f, 30f);
             y += 44f;
 
             if (level != null)
             {
+                // Two columns: field label right-aligned, value left-aligned, meeting at the centre.
                 for (int i = 0; i < level.fields.Count; i++)
                 {
                     FieldData f = level.fields[i];
                     string v;
                     OptionData o = (choices != null && choices.TryGetValue(f.id, out v)) ? f.FindOption(v) : null;
-                    Label row = UIFactory.Text(s, "Field_" + f.id, f.label + ":  " + (o != null ? o.label : "-"), 19f, UIFactory.Ink, TextAnchor.MiddleCenter, false);
-                    UIFactory.TopRow(row.rect, y, 26f, 30f, 30f);
+                    Label key = UIFactory.Text(s, "Key_" + f.id, f.label.ToUpperInvariant(), 13f, UIFactory.InkSoft, TextAnchor.MiddleRight, true);
+                    UIFactory.TopRow(key.rect, y, 26f, 40f, width * 0.5f + 8f);
+                    Label val = UIFactory.Text(s, "Field_" + f.id, o != null ? o.label : "-", 19f, UIFactory.Ink, TextAnchor.MiddleLeft, false);
+                    UIFactory.TopRow(val.rect, y, 26f, width * 0.5f + 8f, 40f);
                     y += 28f;
                 }
             }
             if (lastLevel)
             {
-                Label succ = UIFactory.Text(s, "Successor", "Successor:  YOU", 22f, RejectedColor, TextAnchor.MiddleCenter, true);
-                UIFactory.TopRow(succ.rect, y, 28f, 30f, 30f);
-                y += 32f;
+                Label key = UIFactory.Text(s, "Key_successor", "SUCCESSOR", 13f, RejectedColor, TextAnchor.MiddleRight, true);
+                UIFactory.TopRow(key.rect, y + 2f, 28f, 40f, width * 0.5f + 8f);
+                Label succ = UIFactory.Text(s, "Successor", "YOU", 24f, RejectedColor, TextAnchor.MiddleLeft, true);
+                UIFactory.TopRow(succ.rect, y + 2f, 28f, width * 0.5f + 8f, 40f);
+                y += 34f;
             }
-            y += 8f;
+            y += 10f;
             Label wish = UIFactory.Text(s, "Wish", "Last wish: “" + (level != null ? level.wishText : "") + "”  —  GRANTED", 17f, ApprovedColor, TextAnchor.UpperCenter, true);
-            UIFactory.TopRow(wish.rect, y, 48f, 30f, 30f);
+            UIFactory.TopRow(wish.rect, y, 24f, 40f, 40f);
+            Canvas.ForceUpdateCanvases();
+            float wishH = Mathf.Max(24f, wish.PreferredHeight + 2f);
+            UIFactory.TopRow(wish.rect, y, wishH, 40f, 40f);
+            y += wishH + 16f;
+            Rule(s, "Rule2", y, 90f, frame);
+            y += 18f;
 
-            // Seal + submissions
-            Color sealColor = Progress.SealColor(submissions);
-            Image seal = UIFactory.Panel(s, "Seal", sealColor, false);
-            UIFactory.Box(seal.rectTransform, new Vector2(0f, 0f), new Vector2(0.5f, 0.5f), new Vector2(110f, 120f), new Vector2(92f, 92f));
-            seal.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            Image sealInner = UIFactory.Panel(seal.rectTransform, "Inner", Color.Lerp(sealColor, Color.white, 0.25f), false);
-            UIFactory.Stretch(sealInner.rectTransform, 8f, 8f, 8f, 8f);
-            Label sealWord = UIFactory.Text(s, "SealWord", Progress.SealName(submissions), 20f, UIFactory.Ink, TextAnchor.MiddleCenter, true);
-            UIFactory.Box(sealWord.rect, new Vector2(0f, 0f), new Vector2(0.5f, 0.5f), new Vector2(110f, 120f), new Vector2(120f, 30f));
+            // Seal row: seal on the left, verdict text beside it, Next under the text.
+            const float sealSize = 112f;
+            RectTransform sealRoot = UIFactory.Rect(s, "Seal");
+            UIFactory.Box(sealRoot, new Vector2(0f, 1f), new Vector2(0.5f, 0.5f), new Vector2(40f + sealSize * 0.5f, -(y + sealSize * 0.5f + 4f)), new Vector2(sealSize, sealSize));
+            BuildSeal(sealRoot, submissions, sealSize);
 
-            Label motto = UIFactory.Text(s, "Motto", Progress.SealMotto(submissions), 18f, UIFactory.Ink, TextAnchor.MiddleLeft, true);
-            UIFactory.Box(motto.rect, new Vector2(0f, 0f), new Vector2(0f, 0.5f), new Vector2(190f, 134f), new Vector2(400f, 26f));
-            Label count = UIFactory.Text(s, "Count", "Submissions: " + submissions, 16f, UIFactory.InkSoft, TextAnchor.MiddleLeft, false);
-            UIFactory.Box(count.rect, new Vector2(0f, 0f), new Vector2(0f, 0.5f), new Vector2(190f, 108f), new Vector2(400f, 22f));
+            float textX = 40f + sealSize + 28f;
+            Label motto = UIFactory.Text(s, "Motto", Progress.SealMotto(submissions), 19f, UIFactory.Ink, TextAnchor.MiddleLeft, true);
+            UIFactory.TopRow(motto.rect, y + 6f, 26f, textX, 30f);
+            Label count = UIFactory.Text(s, "Count", "Submissions: " + submissions, 15f, UIFactory.InkSoft, TextAnchor.MiddleLeft, false);
+            UIFactory.TopRow(count.rect, y + 34f, 22f, textX, 30f);
 
             UIButton next = UIFactory.Button(s, "Next", lastLevel ? "Clock in" : "Next case", 20f, ApprovedColor, new Color(1f, 0.97f, 0.9f), onNext);
-            UIFactory.Box(next.rect, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-24f, 22f), new Vector2(180f, 46f));
+            UIFactory.Box(next.rect, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -(y + 70f)), new Vector2(180f, 46f));
+            y += Mathf.Max(sealSize + 8f, 70f + 46f) + 30f;
+
+            s.sizeDelta = new Vector2(width, y);
             return root;
+        }
+
+        private static void Rule(RectTransform parent, string name, float top, float inset, Color c)
+        {
+            Image r = UIFactory.Panel(parent, name, new Color(c.r, c.g, c.b, 0.45f), false);
+            UIFactory.TopRow(r.rectTransform, top, 1.5f, inset, inset);
+        }
+
+        /// <summary>
+        /// The rating seal, built from plain shapes so the three read differently at a glance:
+        /// GOLD = scalloped rosette with ribbon tails, SILVER = round medal with a double rim,
+        /// PAPER = a squarish paper tag stuck on slightly crooked.
+        /// </summary>
+        public static void BuildSeal(RectTransform root, int submissions, float size)
+        {
+            string word = Progress.SealName(submissions);
+            Color c = Progress.SealColor(submissions);
+            Color dark = Color.Lerp(c, Color.black, 0.35f);
+            Color light = Color.Lerp(c, Color.white, 0.35f);
+            if (word == "GOLD")
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    Image tail = UIFactory.Panel(root, "Ribbon" + i, i == 0 ? new Color(0.62f, 0.2f, 0.17f, 1f) : new Color(0.52f, 0.16f, 0.14f, 1f), false);
+                    UIFactory.Box(tail.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(i == 0 ? -size * 0.16f : size * 0.16f, -size * 0.05f), new Vector2(size * 0.2f, size * 0.55f));
+                    tail.rectTransform.localRotation = Quaternion.Euler(0f, 0f, i == 0 ? -18f : 18f);
+                }
+                for (int i = 0; i < 16; i++)
+                {
+                    float a = i * 22.5f * Mathf.Deg2Rad;
+                    UIFactory.Disc(root, "Scallop" + i, dark, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * size * 0.4f, size * 0.24f);
+                }
+                UIFactory.Disc(root, "Face", c, Vector2.zero, size * 0.84f);
+                UIFactory.Disc(root, "Ring", dark, Vector2.zero, size * 0.66f);
+                UIFactory.Disc(root, "Inner", light, Vector2.zero, size * 0.62f);
+            }
+            else if (word == "SILVER")
+            {
+                UIFactory.Disc(root, "Rim", dark, Vector2.zero, size * 0.86f);
+                UIFactory.Disc(root, "Face", c, Vector2.zero, size * 0.8f);
+                UIFactory.Disc(root, "Ring", dark, Vector2.zero, size * 0.64f);
+                UIFactory.Disc(root, "Inner", light, Vector2.zero, size * 0.6f);
+            }
+            else
+            {
+                RectTransform tag = UIFactory.Rect(root, "Tag");
+                UIFactory.Box(tag, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size * 0.86f, size * 0.66f));
+                tag.localRotation = Quaternion.Euler(0f, 0f, -7f);
+                Image shadow = UIFactory.Panel(tag, "Shadow", new Color(0f, 0f, 0f, 0.12f), false);
+                UIFactory.Stretch(shadow.rectTransform, 3f, 3f, -3f, -3f);
+                Image face = UIFactory.Panel(tag, "Face", new Color(0.93f, 0.89f, 0.80f, 1f), false);
+                UIFactory.Stretch(face.rectTransform, 0f, 0f, 0f, 0f);
+                // Dashed "perforated" edge
+                RectTransform dashes = UIFactory.Rect(tag, "Dashes");
+                UIFactory.Stretch(dashes, 5f, 5f, 5f, 5f);
+                Color ink = new Color(0.55f, 0.48f, 0.38f, 1f);
+                for (int i = 0; i < 9; i++)
+                {
+                    float k = (i + 0.5f) / 9f;
+                    Image top = UIFactory.Panel(dashes, "DT" + i, ink, false);
+                    UIFactory.Box(top.rectTransform, new Vector2(k, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(5f, 1.5f));
+                    Image bottom = UIFactory.Panel(dashes, "DB" + i, ink, false);
+                    UIFactory.Box(bottom.rectTransform, new Vector2(k, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(5f, 1.5f));
+                }
+                for (int i = 0; i < 6; i++)
+                {
+                    float k = (i + 0.5f) / 6f;
+                    Image left = UIFactory.Panel(dashes, "DL" + i, ink, false);
+                    UIFactory.Box(left.rectTransform, new Vector2(0f, k), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(1.5f, 5f));
+                    Image right = UIFactory.Panel(dashes, "DR" + i, ink, false);
+                    UIFactory.Box(right.rectTransform, new Vector2(1f, k), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(1.5f, 5f));
+                }
+                UIFactory.Disc(tag, "Hole", new Color(0.35f, 0.3f, 0.26f, 1f), new Vector2(-size * 0.3f, size * 0.17f), 7f);
+                Label pw = UIFactory.Text(tag, "Word", word, 20f, ink, TextAnchor.MiddleCenter, true);
+                UIFactory.Stretch(pw.rect, 4f, 4f, 4f, 4f);
+                return;
+            }
+            Label l = UIFactory.Text(root, "Word", word, word == "GOLD" ? 18f : 17f, Color.Lerp(dark, Color.black, 0.45f), TextAnchor.MiddleCenter, true);
+            UIFactory.Box(l.rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size, 30f));
         }
     }
 }

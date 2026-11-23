@@ -7,14 +7,44 @@ namespace DeathNotice.Game
 {
     /// <summary>
     /// Builds the diorama for a level: layout from <see cref="StageLayouts"/>, a placeholder node for any
-    /// anchor the layout forgot, optional model replacement from Resources/Models/&lt;levelId&gt;/&lt;anchor&gt;,
-    /// then the protagonist and the Shift ghost.
+    /// anchor the layout forgot, then optional authored models (see <see cref="ModelSwap"/> and
+    /// docs/art-brief.md):
+    ///   Resources/Models/&lt;levelId&gt;/&lt;anchor&gt;  one anchor's look (NPCs are anchors too)
+    ///   Resources/Models/&lt;levelId&gt;/_set      all scenery that is not an anchor (tower, walls, plinth, trees)
+    ///   Resources/Models/common/player       the protagonist (the Shift ghost uses it half-transparent)
+    ///   Resources/Models/common/death        the protagonist when the deceased is DEATH (case 6)
     /// </summary>
     public static class StageBuilder
     {
         public const string ModelsFolder = "Models";
+        public const string SetName = "_set";
+        public const string CommonFolder = "common";
+        public const string PlayerModel = "player";
+        public const string DeathModel = "death";
+
+        /// <summary>Where models come from. Tests swap in fakes; null result = keep the greybox.</summary>
+        public static Func<string, GameObject> ModelLoader = DefaultLoader;
+
+        public static GameObject DefaultLoader(string resourcePath)
+        {
+            try { return Resources.Load<GameObject>(resourcePath); }
+            catch (Exception) { return null; }
+        }
+
+        private static GameObject LoadModel(string path)
+        {
+            Func<string, GameObject> loader = ModelLoader ?? DefaultLoader;
+            try { return loader(ModelsFolder + "/" + path); }
+            catch (Exception e) { Debug.LogWarning("[StageBuilder] Model loader failed for " + path + ": " + e.Message); return null; }
+        }
 
         public static Stage Build(LevelData level, Transform parent)
+        {
+            return Build(level, parent, true);
+        }
+
+        /// <param name="useModels">False builds the pure greybox (GreyboxExport).</param>
+        public static Stage Build(LevelData level, Transform parent, bool useModels)
         {
             var go = new GameObject("Stage_" + (level != null ? level.id : "none"));
             go.transform.SetParent(parent, false);
@@ -41,12 +71,19 @@ namespace DeathNotice.Game
             if (level != null)
             {
                 EnsureAnchors(level, kit);
-                ApplyModelOverrides(level, stage);
+                if (useModels) ApplyModelOverrides(level, stage);
             }
 
-            stage.player = Figure.Create(go.transform, "Player", stage.palette.player, 0.7f, false, null);
+            GameObject playerModel = null;
+            if (useModels)
+            {
+                bool isDeath = level != null && string.Equals(level.deceased, "DEATH", StringComparison.OrdinalIgnoreCase);
+                if (isDeath) playerModel = LoadModel(CommonFolder + "/" + DeathModel);
+                if (playerModel == null) playerModel = LoadModel(CommonFolder + "/" + PlayerModel);
+            }
+            stage.player = Figure.Create(go.transform, "Player", stage.palette.player, 0.7f, false, null, playerModel);
             stage.player.gameObject.SetActive(false);
-            stage.ghost = Figure.Create(go.transform, "Ghost", new Color(0.82f, 0.86f, 1f, 0.45f), 0.7f, true, null);
+            stage.ghost = Figure.Create(go.transform, "Ghost", new Color(0.82f, 0.86f, 1f, 0.45f), 0.7f, true, null, playerModel);
             stage.ghost.gameObject.SetActive(false);
             stage.InitShowables();
             return stage;
@@ -81,38 +118,38 @@ namespace DeathNotice.Game
             }
         }
 
-        /// <summary>Replacement hook: Resources/Models/&lt;levelId&gt;/&lt;anchor&gt; (prefab or model) replaces the greybox visuals.</summary>
+        /// <summary>Which behaviours each anchor has, from the layout and from the level's beats.</summary>
+        public static ModelSwap.Uses UsesOf(LevelData level, AnchorTag t)
+        {
+            var u = new ModelSwap.Uses();
+            u.spin = t.spins.Count > 0;
+            u.toggle = t.onToggle != null || t.toggleMotion != null;
+            u.light = t.onLight != null;
+            if (level == null) return u;
+            for (int r = 0; r < level.rules.Count; r++)
+            {
+                List<BeatData> beats = level.rules[r].beats;
+                for (int b = 0; b < beats.Count; b++)
+                {
+                    if (beats[b] == null || beats[b].target != t.id) continue;
+                    if (beats[b].@do == "rotate") u.spin = true;
+                    else if (beats[b].@do == "toggle") u.toggle = true;
+                    else if (beats[b].@do == "light") u.light = true;
+                }
+            }
+            return u;
+        }
+
         private static void ApplyModelOverrides(LevelData level, Stage stage)
         {
+            GameObject set = LoadModel(level.id + "/" + SetName);
+            if (set != null) ModelSwap.ApplySet(stage, set);
             foreach (AnchorTag t in new List<AnchorTag>(stage.AllAnchors))
             {
-                GameObject prefab = null;
-                try { prefab = Resources.Load<GameObject>(ModelsFolder + "/" + level.id + "/" + t.id); }
-                catch (Exception) { prefab = null; }
+                GameObject prefab = LoadModel(level.id + "/" + t.id);
                 if (prefab == null) continue;
-
-                for (int i = t.transform.childCount - 1; i >= 0; i--)
-                {
-                    GameObject child = t.transform.GetChild(i).gameObject;
-                    child.SetActive(false);
-                    UnityEngine.Object.Destroy(child);
-                }
-                Collider own = t.GetComponent<Collider>();
-                if (own != null) UnityEngine.Object.Destroy(own);
-                t.spins.Clear();
-                t.onToggle = null;
-                t.onLight = null;
-
-                GameObject inst = UnityEngine.Object.Instantiate(prefab, t.transform);
-                inst.name = "model";
-                inst.transform.localPosition = Vector3.zero;
-                inst.transform.localRotation = Quaternion.identity;
-                if (inst.GetComponentInChildren<Collider>() == null)
-                {
-                    MeshRenderer[] rs = inst.GetComponentsInChildren<MeshRenderer>();
-                    for (int i = 0; i < rs.Length; i++) rs[i].gameObject.AddComponent<BoxCollider>();
-                }
-                Debug.Log("[StageBuilder] Replaced greybox '" + t.id + "' with model " + prefab.name);
+                try { ModelSwap.ApplyAnchor(t, prefab, UsesOf(level, t)); }
+                catch (Exception e) { Debug.LogError("[StageBuilder] Model for " + level.id + "/" + t.id + " failed: " + e); }
             }
         }
     }

@@ -231,6 +231,19 @@ namespace DeathNotice.Game
         }
 
         public bool PopupOpen { get { return popup.IsOpen; } }
+        public int NoteCount { get { return notes.Count; } }
+        public UIButton SubmitButton { get { return submit; } }
+        public UIButton ClearButton { get { return clear; } }
+
+        /// <summary>The dropdown button of a field row (null if the level has no such field).</summary>
+        public UIButton RowButton(string fieldId)
+        {
+            for (int i = 0; i < rows.Count; i++)
+            {
+                if (rows[i].field.id == fieldId) return rows[i].value;
+            }
+            return null;
+        }
 
         public void Set(string fieldId, string optionId)
         {

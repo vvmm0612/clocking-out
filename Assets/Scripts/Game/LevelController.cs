@@ -48,8 +48,24 @@ namespace DeathNotice.Game
         private bool peeking;
         private int peekVersion = -1;
         private bool shiftOnlyLevel;
+        private Tutorial tutorial;
+        private const float CaptionHeight = 104f;
 
         public bool InLevel { get { return phase != Phase.Idle; } }
+
+        // ---- read-only handles for the automated playtest (Assets/Tests/PlayMode)
+        public string PhaseName { get { return phase.ToString(); } }
+        public NoticeForm Form { get { return form; } }
+        public Stage CurrentStage { get { return stage; } }
+        public BeatPlayer Beats { get { return beats; } }
+        public SimResult LastResult { get; private set; }
+        public int Submissions { get { return submissions; } }
+        public bool Peeking { get { return peeking; } }
+        public bool RejectCardVisible { get { return rejectCard != null && rejectCard.root.gameObject.activeSelf; } }
+        public UIButton ReviseButton { get { return rejectCard != null ? rejectCard.revise : null; } }
+        public RectTransform Certificate { get { return certificate; } }
+        public Tutorial Tips { get { return tutorial; } }
+        public RectTransform Hud { get { return hud; } }
 
         public void Init(GameRoot gameRoot, GameFlow gameFlow)
         {
@@ -73,7 +89,7 @@ namespace DeathNotice.Game
             resetButton = UIFactory.Button(hud, "Reset", "Reset", 16f, new Color(0.14f, 0.12f, 0.12f, 0.85f), new Color(0.96f, 0.93f, 0.86f), RestartLevel);
             UIFactory.Box(resetButton.rect, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(102f, -12f), new Vector2(84f, 34f));
             caseLabel = UIFactory.Text(hud, "Case", "", 17f, new Color(1f, 0.98f, 0.94f, 1f), TextAnchor.MiddleLeft, true);
-            UIFactory.Box(caseLabel.rect, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(198f, -12f), new Vector2(420f, 34f));
+            UIFactory.TopRow(caseLabel.rect, 12f, 34f, 198f, 12f);
             AddShadow(caseLabel);
 
             // Bottom-left corner; the caption bar covers it during playback, when Shift does nothing anyway.
@@ -90,13 +106,17 @@ namespace DeathNotice.Game
             peekLabel.SetActive(false);
             peekSub.SetActive(false);
 
-            Image bar = UIFactory.Panel(hud, "CaptionBar", new Color(0.07f, 0.06f, 0.07f, 0.82f), false);
+            // Opaque strip along the bottom of the stage; while it is up the 3D view is squeezed above it
+            // (CameraRig.bottomInset) so nothing that happens at the bottom of a diorama is hidden.
+            Image bar = UIFactory.Panel(hud, "CaptionBar", new Color(0.09f, 0.08f, 0.09f, 1f), false);
             captionBar = bar.rectTransform;
             captionBar.anchorMin = new Vector2(0f, 0f);
             captionBar.anchorMax = new Vector2(1f, 0f);
             captionBar.pivot = new Vector2(0.5f, 0f);
-            captionBar.offsetMin = new Vector2(16f, 14f);
-            captionBar.offsetMax = new Vector2(-16f, 118f);
+            captionBar.offsetMin = new Vector2(0f, 0f);
+            captionBar.offsetMax = new Vector2(0f, CaptionHeight);
+            Image barEdge = UIFactory.Panel(captionBar, "Edge", new Color(0.62f, 0.2f, 0.17f, 1f), false);
+            UIFactory.TopRow(barEdge.rectTransform, 0f, 3f, 0f, 0f);
             captionText = UIFactory.Text(captionBar, "Caption", "", 21f, new Color(1f, 0.97f, 0.9f, 1f), TextAnchor.MiddleCenter, false);
             UIFactory.Stretch(captionText.rect, 20f, 8f, 20f, 24f);
             captionHelp = UIFactory.Text(captionBar, "Help", "click / space: next    hold: faster", 12f, new Color(1f, 1f, 1f, 0.5f), TextAnchor.LowerCenter, false);
@@ -104,7 +124,7 @@ namespace DeathNotice.Game
             captionBar.gameObject.SetActive(false);
 
             skipButton = UIFactory.Button(hud, "Skip", "Skip >>", 16f, new Color(0.14f, 0.12f, 0.12f, 0.9f), new Color(0.96f, 0.93f, 0.86f), delegate { if (beats != null) beats.SkipAll(); });
-            UIFactory.Box(skipButton.rect, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-16f, 126f), new Vector2(100f, 34f));
+            UIFactory.Box(skipButton.rect, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-14f, CaptionHeight + 10f), new Vector2(100f, 34f));
             skipButton.gameObject.SetActive(false);
 
             rejectCard = ResultUI.BuildRejectCard(hud, Revise);
@@ -121,6 +141,8 @@ namespace DeathNotice.Game
             clues.cam = root.Cam;
             clues.form = form;
             clues.Init(hud, markerLayer, tipLayer);
+
+            tutorial = new Tutorial(hud);
 
             beats = gameObject.AddComponent<BeatPlayer>();
             beats.rig = root.Rig;
@@ -163,6 +185,7 @@ namespace DeathNotice.Game
             clues.SetActive(true);
             AudioManager.PlayBgm("level");
             AudioManager.PlaySfx("page");
+            tutorial.BeginLevel(lvl, index, shiftOnlyLevel);
         }
 
         /// <summary>Tears the level down (back to title, restart, next level).</summary>
@@ -176,10 +199,11 @@ namespace DeathNotice.Game
             if (clues != null) { clues.SetActive(false); clues.Bind(null, 0); }
             if (certificate != null) { Destroy(certificate.gameObject); certificate = null; }
             if (rejectCard != null) rejectCard.root.gameObject.SetActive(false);
-            if (captionBar != null) captionBar.gameObject.SetActive(false);
+            SetCaptionBar(false);
             if (skipButton != null) skipButton.gameObject.SetActive(false);
             if (debugLabel != null) debugLabel.SetActive(false);
             if (form != null) { form.SetSupervisor(false); form.ClearStamps(); }
+            if (tutorial != null) tutorial.Hide();
             if (stage != null) { Destroy(stage.gameObject); stage = null; }
             SetHudVisible(false);
             phase = Phase.Idle;
@@ -225,6 +249,7 @@ namespace DeathNotice.Game
             bool modal = GameRoot.ModalOpen;
 
             if (hintLabel.gameObject.activeSelf != (phase == Phase.Editing)) hintLabel.SetActive(phase == Phase.Editing);
+            tutorial.Tick(phase == Phase.Editing && !peeking && !modal, form);
             if (phase == Phase.Editing)
             {
                 UpdateShift(modal);
@@ -235,14 +260,14 @@ namespace DeathNotice.Game
                 ExitPeek();
             }
 
-            if (!modal && Input.GetKeyDown(KeyCode.Escape))
+            if (!modal && GameInput.GetKeyDown(KeyCode.Escape))
             {
                 if (popup.IsOpen) popup.Close();
                 else if (phase != Phase.Playing) flow.OpenPauseMenu();
             }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (Input.GetKeyDown(KeyCode.F1)) ToggleDebugSolution();
+            if (GameInput.GetKeyDown(KeyCode.F1)) ToggleDebugSolution();
 #endif
         }
 
@@ -336,6 +361,7 @@ namespace DeathNotice.Game
 
             submissions++;
             form.SetSubmissions(submissions);
+            tutorial.OnSubmitted();
             Dictionary<string, string> choices = form.GetChoices();
 
             SimResult result;
@@ -351,6 +377,7 @@ namespace DeathNotice.Game
                 result.verdict = "The clerk spilled ink on the form. Please file it again.";
             }
 
+            LastResult = result;
             phase = Phase.Playing;
             form.SetLocked(true);
             RebuildStage();
@@ -359,11 +386,19 @@ namespace DeathNotice.Game
             if (!string.IsNullOrEmpty(shift)) stage.ApplyShow(shift);
 
             ShowCaption("");
-            captionBar.gameObject.SetActive(true);
+            SetCaptionBar(true);
             skipButton.gameObject.SetActive(true);
             AudioManager.PlaySfx("submit");
             SimResult captured = result;
             beats.Play(stage, result, delegate { OnPlaybackDone(captured); });
+        }
+
+        private void SetCaptionBar(bool on)
+        {
+            if (captionBar == null) return;
+            captionBar.gameObject.SetActive(on);
+            float h = root.CanvasRect != null ? root.CanvasRect.rect.height : GameRoot.RefHeight;
+            if (root.Rig != null) root.Rig.bottomInset = on && h > 1f ? CaptionHeight / h : 0f;
         }
 
         private void ShowCaption(string text)
@@ -436,7 +471,7 @@ namespace DeathNotice.Game
             if (string.IsNullOrEmpty(lastCaption))
             {
                 // Nothing on the caption bar: the card carries the reason.
-                captionBar.gameObject.SetActive(false);
+                SetCaptionBar(false);
             }
             rejectCard.verdict.text = duplicate ? "" : verdict;
             float h = duplicate ? 120f : 190f;
@@ -448,7 +483,7 @@ namespace DeathNotice.Game
         {
             if (phase != Phase.Result) return;
             rejectCard.root.gameObject.SetActive(false);
-            captionBar.gameObject.SetActive(false);
+            SetCaptionBar(false);
             form.ClearStamps();
             RebuildStage();
             form.SetLocked(false);

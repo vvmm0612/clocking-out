@@ -52,6 +52,8 @@ public static class BuildScript
         PlayerSettings.WebGL.decompressionFallback = true; // itch.io serves without Content-Encoding headers
         PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.None; // smallest
         PlayerSettings.WebGL.dataCaching = true;
+        // Assets/WebGLTemplates/ClockingOut: canvas fills the window (DPR capped at 2), dark page, minimal loader.
+        PlayerSettings.WebGL.template = "PROJECT:ClockingOut";
         PlayerSettings.defaultWebScreenWidth = 1280;
         PlayerSettings.defaultWebScreenHeight = 720;
         PlayerSettings.runInBackground = true;
