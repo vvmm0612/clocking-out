@@ -890,7 +890,13 @@ namespace DeathNotice.Game
         private static void ClockTower(StageKit k)
         {
             StagePalette p = k.pal;
-            Frame(k.stage, new Vector3(0.1f, 5.0f, 0.8f), 19.5f, 14f, -14f);
+            Frame(k.stage, new Vector3(0.1f, 5.0f, 0.8f), 19.5f, 12f, -12f);
+            // Tall, narrow building: frame the tower itself (roof to street level) and let the plinth and stand
+            // run off the bottom of the view, so the four rooms and the people in them read at a glance.
+            k.stage.hasFitOverride = true;
+            k.stage.fitOverride = new Bounds(new Vector3(0f, 5.3f, 0.9f), new Vector3(5.0f, 10.8f, 3.3f));
+            k.stage.camFill = 0.83f;
+            k.stage.figureScale = 1.45f;
             k.Plinth(new Vector3(0f, -0.2f, 0.6f), new Vector3(8f, 0.4f, 5.6f), p.ground, Color.Lerp(p.ground, p.dark, 0.4f));
 
             // Shell (cutaway front)
@@ -904,8 +910,16 @@ namespace DeathNotice.Game
                 k.DBox(null, new Vector3(0f, 9.56f + i * 0.28f, 1.0f), new Vector3(4.5f - i * 1.0f, 0.28f, 2.9f - i * 0.62f), Color.Lerp(slate, p.dark, i * 0.12f));
             k.DCyl(null, new Vector3(0f, 10.85f, 1.0f), 0.08f, 0.9f, p.c);
             k.DBall(null, new Vector3(0f, 11.3f, 1.0f), Vector3.one * 0.22f, p.c);
-            k.Box(null, new Vector3(0f, 4.1f, 1.0f), new Vector3(4.2f, 0.15f, 2.8f), p.b);
-            k.Box(null, new Vector3(0f, 7.3f, 1.0f), new Vector3(4.2f, 0.15f, 2.8f), p.b);
+            // Floors: thick slabs (top faces unchanged) with a dark front edge, so the storeys read as a cutaway.
+            Color slab = Color.Lerp(p.b, p.dark, 0.45f);
+            k.Box(null, new Vector3(0f, 3.975f, 1.0f), new Vector3(4.2f, 0.4f, 2.8f), p.b);
+            k.Box(null, new Vector3(0f, 7.175f, 1.0f), new Vector3(4.2f, 0.4f, 2.8f), p.b);
+            k.DBox(null, new Vector3(0f, 3.975f, -0.41f), new Vector3(4.2f, 0.4f, 0.04f), slab);
+            k.DBox(null, new Vector3(0f, 7.175f, -0.41f), new Vector3(4.2f, 0.4f, 0.04f), slab);
+            // Each room gets its own back-wall colour: cold pit, warm lamp-lit gear room, pale belfry.
+            k.DBox(null, new Vector3(0f, 1.9f, 2.268f), new Vector3(4.15f, 3.8f, 0.01f), Color.Lerp(p.a, C(0.36f, 0.44f, 0.62f), 0.4f));
+            k.DBox(null, new Vector3(0f, 5.62f, 2.268f), new Vector3(4.15f, 2.9f, 0.01f), Color.Lerp(p.a, C(0.95f, 0.72f, 0.46f), 0.35f));
+            k.DBox(null, new Vector3(0f, 8.27f, 2.268f), new Vector3(4.15f, 1.8f, 0.01f), Color.Lerp(p.a, C(0.66f, 0.66f, 0.84f), 0.25f));
             for (int i = 0; i < 7; i++)
             {
                 k.Box(null, new Vector3(-1.85f, 0.3f + i * 0.55f, -0.1f), new Vector3(0.4f, 0.05f, 0.05f), p.b);
@@ -997,7 +1011,8 @@ namespace DeathNotice.Game
                 if (hinge != null) hinge.localRotation = on ? Quaternion.Euler(-100f, 0f, 0f) : Quaternion.identity;
             };
 
-            k.Npc("watchman", new Vector3(0.5f, 4.18f, 0.6f), C(0.34f, 0.38f, 0.55f), C(0.18f, 0.18f, 0.24f), 0.75f, FigureStyle.Watchman);
+            AnchorTag watchman = k.Npc("watchman", new Vector3(0.5f, 4.18f, 0.6f), C(0.34f, 0.38f, 0.55f), C(0.18f, 0.18f, 0.24f), 0.75f, FigureStyle.Watchman);
+            watchman.transform.localScale = Vector3.one * k.stage.figureScale;
             k.Point(null, new Vector3(0f, 8.4f, 0.4f), C(0.8f, 0.8f, 1f), 4f, 0.6f);
             k.Point(null, new Vector3(0f, 1.6f, 0.2f), C(0.8f, 0.85f, 1f), 4f, 0.6f);
 

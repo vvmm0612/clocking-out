@@ -10,7 +10,7 @@ namespace DeathNotice.Game
     /// </summary>
     public static class UITextures
     {
-        private static Sprite grain, edge, speckle, frame, fade, reaperBody, reaperArm, diamond;
+        private static Sprite grain, edge, speckle, frame, fade, reaperBody, reaperArm, diamond, vignette;
 
         private static float Hash(int x, int y, int seed)
         {
@@ -97,6 +97,30 @@ namespace DeathNotice.Game
             edge = Make(t, px, new Vector4(b, b, b, b), new Vector2(0.5f, 0.5f));
             edge.name = "EdgeShade";
             return edge;
+        }
+
+        /// <summary>Screen vignette: clear in the middle, alpha rising toward the edges and corners (stretch it).</summary>
+        public static Sprite Vignette()
+        {
+            if (vignette != null) return vignette;
+            const int n = 64;
+            Texture2D t = Tex(n, n, false);
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            {
+                for (int x = 0; x < n; x++)
+                {
+                    float dx = (x + 0.5f) / n * 2f - 1f;
+                    float dy = (y + 0.5f) / n * 2f - 1f;
+                    float d = Mathf.Sqrt(dx * dx + dy * dy) / 1.414f;
+                    float a = Mathf.Clamp01((d - 0.45f) / 0.55f);
+                    a = a * a * (3f - 2f * a);
+                    px[y * n + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+                }
+            }
+            vignette = Make(t, px, Vector4.zero, new Vector2(0.5f, 0.5f));
+            vignette.name = "Vignette";
+            return vignette;
         }
 
         /// <summary>Ink gaps for rubber stamps: white blotches with alpha (tint with the paper colour, put on top).</summary>

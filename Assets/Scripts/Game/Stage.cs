@@ -22,7 +22,8 @@ namespace DeathNotice.Game
         public Color player = new Color(0.92f, 0.9f, 0.82f);
         public Color peekSky = new Color(0.22f, 0.16f, 0.34f);
         public Color peekAmbient = new Color(0.45f, 0.42f, 0.72f);
-        public Color peekTint = new Color(0.42f, 0.25f, 0.75f, 0.22f);
+        /// <summary>Flat wash over the 3D view while peeking (grey-violet: cools and slightly desaturates).</summary>
+        public Color peekTint = new Color(0.5f, 0.46f, 0.64f, 0.12f);
 
         // ---- mood (GameRoot.ApplyLighting)
         /// <summary>Sky gradient: top, horizon band (at skyMid 0..1 of the view height), bottom.</summary>
@@ -489,10 +490,16 @@ namespace DeathNotice.Game
         public bool hasFitBounds;
         /// <summary>Fraction of the 3D view's height the framed diorama should fill.</summary>
         public float camFill = 0.8f;
+        /// <summary>Optional hand-picked framing box (a tall level frames its building, letting the plinth run off the bottom).</summary>
+        public bool hasFitOverride;
+        public Bounds fitOverride;
+        /// <summary>Size multiplier for the player and ghost figures (tall, deep levels make people bigger to read).</summary>
+        public float figureScale = 1f;
 
         /// <summary>Bounds of every visible renderer except particles and objects marked <see cref="NoFit"/>.</summary>
         public void ComputeFitBounds()
         {
+            if (hasFitOverride) { fitBounds = fitOverride; hasFitBounds = true; return; }
             hasFitBounds = false;
             foreach (Renderer r in GetComponentsInChildren<Renderer>(false))
             {
@@ -641,6 +648,73 @@ namespace DeathNotice.Game
         public void HideGhost()
         {
             if (ghost != null) ghost.gameObject.SetActive(false);
+        }
+
+        // ---------------------------------------------------------------- Shift-peek halos
+
+        private readonly List<GameObject> halos = new List<GameObject>();
+        private static Mesh haloQuad;
+
+        /// <summary>On the other side, people (NPCs and your ghost) get a soft glow behind them so they read at a glance.</summary>
+        public void SetPeekHalos(bool on)
+        {
+            for (int i = 0; i < halos.Count; i++) if (halos[i] != null) Destroy(halos[i]);
+            halos.Clear();
+            if (!on) return;
+            foreach (AnchorTag t in anchors.Values)
+            {
+                if (t != null && t.isFigure && t.gameObject.activeInHierarchy) AddHalo(t.transform, new Color(1f, 0.9f, 0.7f, 0.6f));
+            }
+            if (ghost != null && ghost.gameObject.activeInHierarchy) AddHalo(ghost.transform, new Color(0.7f, 0.92f, 1f, 0.7f));
+        }
+
+        private void AddHalo(Transform who, Color c)
+        {
+            bool any = false;
+            Bounds b = new Bounds(who.position, Vector3.zero);
+            foreach (Renderer r in who.GetComponentsInChildren<Renderer>(false))
+            {
+                if (r == null || !r.enabled || r is ParticleSystemRenderer) continue;
+                if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+            }
+            if (!any) b = new Bounds(who.position + Vector3.up * 0.35f, new Vector3(0.4f, 0.7f, 0.4f));
+
+            if (haloQuad == null)
+            {
+                haloQuad = new Mesh();
+                haloQuad.name = "HaloQuad";
+                haloQuad.vertices = new[] { new Vector3(-0.5f, -0.5f, 0f), new Vector3(0.5f, -0.5f, 0f), new Vector3(-0.5f, 0.5f, 0f), new Vector3(0.5f, 0.5f, 0f) };
+                haloQuad.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1) };
+                haloQuad.colors = new[] { Color.white, Color.white, Color.white, Color.white };
+                haloQuad.triangles = new[] { 0, 2, 1, 2, 3, 1 };
+                haloQuad.RecalculateBounds();
+            }
+
+            var go = new GameObject("PeekHalo");
+            go.transform.SetParent(who, false);
+            go.transform.position = b.center;
+            float size = Mathf.Max(b.size.y, Mathf.Max(b.size.x, b.size.z)) * 2.1f;
+            Vector3 ls = who.lossyScale;
+            float s = Mathf.Max(0.0001f, Mathf.Max(ls.x, Mathf.Max(ls.y, ls.z)));
+            go.transform.localScale = Vector3.one * (size / s);
+            go.AddComponent<NoFit>();
+            go.AddComponent<MeshFilter>().sharedMesh = haloQuad;
+            MeshRenderer mr = go.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = Mats.Halo(c);
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            go.AddComponent<FaceCamera>();
+            halos.Add(go);
+        }
+    }
+
+    /// <summary>Keeps a flat quad turned to the main camera.</summary>
+    public class FaceCamera : MonoBehaviour
+    {
+        private void LateUpdate()
+        {
+            Camera cam = Camera.main;
+            if (cam != null) transform.rotation = cam.transform.rotation;
         }
     }
 }

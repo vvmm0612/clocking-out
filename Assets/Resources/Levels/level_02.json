@@ -58,7 +58,7 @@
     },
     {
       "anchor": "gauge",
-      "text": "Pond depth gauge.",
+      "text": "Pond depth gauge. It reads differently on every shift.",
       "minRejects": 0
     },
     {

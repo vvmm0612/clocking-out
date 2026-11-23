@@ -84,6 +84,9 @@ namespace DeathNotice.Game
             UIFactory.TopRow(topShade.rectTransform, 0f, 78f, 0f, 0f);
             peekTint = UIFactory.Panel(hud, "PeekTint", new Color(0.4f, 0.25f, 0.75f, 0.22f), false);
             UIFactory.Stretch(peekTint.rectTransform, 0f, 0f, 0f, 0f);
+            Image peekVignette = UIFactory.Panel(peekTint.rectTransform, "Vignette", new Color(0.1f, 0.05f, 0.2f, 0.8f), false);
+            peekVignette.sprite = UITextures.Vignette();
+            UIFactory.Stretch(peekVignette.rectTransform, 0f, 0f, 0f, 0f);
             peekTint.gameObject.SetActive(false);
 
             RectTransform markerLayer = UIFactory.Rect(hud, "Markers");
@@ -158,9 +161,9 @@ namespace DeathNotice.Game
             beats.rig = root.Rig;
             beats.showCaption = ShowCaption;
 
-            // The Reaper stands at the bottom-left corner of the paper, facing it; drawn over the paper's
-            // margin so his stamping arm comes down onto the form.
-            reaper = ReaperUI.Create(root.PaperArea, 196f, new Vector2(0f, 0f), new Vector2(0.74f, 0f), new Vector2(0f, -6f), true);
+            // The Reaper stands in the bottom-right corner of the 3D view, just left of the paper and facing it.
+            // He is kept clear of the paper so neither his robe nor his stamping arm ever covers form text.
+            reaper = ReaperUI.Create(root.PaperArea, 170f, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(-72f, -6f), true);
 
             SetHudVisible(false);
         }
@@ -375,6 +378,7 @@ namespace DeathNotice.Game
             }
             peekLabel.text = title;
             peekSub.text = sub;
+            stage.SetPeekHalos(true);
             root.ApplyLighting(stage.palette, true);
         }
 
@@ -386,6 +390,7 @@ namespace DeathNotice.Game
             peekSub.SetActive(false);
             if (stage != null)
             {
+                stage.SetPeekHalos(false);
                 stage.ResetShow();
                 stage.HideGhost();
                 root.ApplyLighting(stage.palette, false);

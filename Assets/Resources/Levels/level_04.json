@@ -63,12 +63,12 @@
     },
     {
       "anchor": "tank",
-      "text": "The float raises the WATER STOP arm when the tank is brim-full. The pump refills it through the night.",
+      "text": "The float raises the WATER STOP arm when the tank is brim-full. The pump tops it up through the night, but never quite to the brim.",
       "minRejects": 0
     },
     {
       "anchor": "roster",
-      "text": "Evening & Night shifts: signalman (box), stationmaster (platform). Graveyard shift: unstaffed since the budget cuts.",
+      "text": "Evening & Night shifts: signalman (box), stationmaster (platform). Graveyard shift, 11 PM till dawn: unstaffed since the budget cuts.",
       "minRejects": 0
     },
     {

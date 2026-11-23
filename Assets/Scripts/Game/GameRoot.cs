@@ -161,6 +161,17 @@ namespace DeathNotice.Game
             mr.receiveShadows = false;
         }
 
+        /// <summary>Peek light: 30% desaturated, then pulled toward a cool violet by k (brightness kept).</summary>
+        private static Color Cool(Color c, float k)
+        {
+            float g = c.r * 0.3f + c.g * 0.59f + c.b * 0.11f;
+            Color d = Color.Lerp(c, new Color(g, g, g), 0.3f);
+            Color v = new Color(0.78f, 0.72f, 1f) * Mathf.Max(0.35f, g * 1.05f);
+            Color o = Color.Lerp(d, v, k);
+            o.a = c.a;
+            return o;
+        }
+
         private static Vector4 Lin(Color c) { Color l = c.linear; return new Vector4(l.r, l.g, l.b, c.a); }
 
         private static readonly int ShadowTintId = Shader.PropertyToID("_CO_ShadowTint");
@@ -193,22 +204,23 @@ namespace DeathNotice.Game
         {
             if (p == null) return;
             if (Cam != null) Cam.backgroundColor = otherSide ? p.peekSky : p.skyBottom;
-            SetAmbient(otherSide ? p.peekAmbient : p.ambient);
+            // "The other side" (Shift peek): the level's own light, cooled toward violet and a little
+            // desaturated, so objects keep their colours and outlines (the vignette is a UI overlay).
+            SetAmbient(otherSide ? Cool(p.ambient, 0.4f) : p.ambient);
             if (Sun != null)
             {
-                Sun.color = otherSide ? new Color(0.72f, 0.62f, 1f) : p.sun;
-                Sun.intensity = otherSide ? 0.75f : p.sunIntensity;
+                Sun.color = otherSide ? Cool(p.sun, 0.35f) : p.sun;
+                Sun.intensity = otherSide ? p.sunIntensity * 0.85f : p.sunIntensity;
                 Sun.transform.rotation = Quaternion.Euler(p.sunAngles.x, p.sunAngles.y, 0f);
             }
 
-            // "The other side" (Shift peek): everything goes violet and dreamy, same layout.
-            Color shadow = otherSide ? new Color(0.42f, 0.32f, 0.66f) : p.shadowTint;
-            Color rim = otherSide ? new Color(0.85f, 0.7f, 1f, 0.8f) : p.rim;
-            Color top = otherSide ? new Color(0.16f, 0.09f, 0.3f) : p.skyTop;
-            Color mid = otherSide ? new Color(0.5f, 0.32f, 0.7f) : p.sky;
-            Color bottom = otherSide ? new Color(0.24f, 0.14f, 0.38f) : p.skyBottom;
-            Color glow = otherSide ? new Color(0.85f, 0.6f, 1f, 0.35f) : p.skyGlow;
-            Color fog = otherSide ? new Color(0.4f, 0.27f, 0.6f, 0.6f) : p.fog;
+            Color shadow = otherSide ? Color.Lerp(p.shadowTint, new Color(0.45f, 0.38f, 0.68f), 0.5f) : p.shadowTint;
+            Color rim = otherSide ? new Color(0.85f, 0.78f, 1f, 0.5f) : p.rim;
+            Color top = otherSide ? new Color(0.14f, 0.1f, 0.24f) : p.skyTop;
+            Color mid = otherSide ? new Color(0.4f, 0.31f, 0.55f) : p.sky;
+            Color bottom = otherSide ? new Color(0.22f, 0.16f, 0.32f) : p.skyBottom;
+            Color glow = otherSide ? new Color(0.8f, 0.68f, 1f, 0.25f) : p.skyGlow;
+            Color fog = otherSide ? new Color(0.42f, 0.35f, 0.58f, Mathf.Min(p.fog.a, 0.4f)) : p.fog;
 
             Shader.SetGlobalVector(ShadowTintId, Lin(shadow));
             Shader.SetGlobalVector(RimId, Lin(rim));

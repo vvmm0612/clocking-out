@@ -31,6 +31,7 @@ namespace DeathNotice.Game
         private static readonly Dictionary<int, Material> waterCache = new Dictionary<int, Material>();
         private static readonly Dictionary<int, Material> glassCache = new Dictionary<int, Material>();
         private static readonly Dictionary<int, Material> modelCache = new Dictionary<int, Material>();
+        private static readonly Dictionary<int, Material> haloCache = new Dictionary<int, Material>();
 
         public static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         public static readonly int ColorId = Shader.PropertyToID("_Color");
@@ -252,6 +253,17 @@ namespace DeathNotice.Game
             particleAddMat = Make(addTemplate, Color.white);
             if (particleAddMat != null) particleAddMat.mainTexture = SoftDot();
             return particleAddMat;
+        }
+
+        /// <summary>Soft additive glow disc (Shift-peek halo behind people). Shared per color.</summary>
+        public static Material Halo(Color c)
+        {
+            return Cached(haloCache, c, delegate (Color x)
+            {
+                Material m = Make(addTemplate, x);
+                if (m != null) m.mainTexture = SoftDot();
+                return m;
+            });
         }
 
         /// <summary>A private instance of the sky backdrop material.</summary>

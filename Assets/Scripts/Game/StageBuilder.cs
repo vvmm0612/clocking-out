@@ -85,6 +85,11 @@ namespace DeathNotice.Game
             stage.player.gameObject.SetActive(false);
             stage.ghost = Figure.Create(go.transform, "Ghost", new Color(0.82f, 0.86f, 1f, 0.42f), 0.7f, true, null, playerModel, FigureStyle.Ghost);
             stage.ghost.gameObject.SetActive(false);
+            if (!Mathf.Approximately(stage.figureScale, 1f))
+            {
+                stage.player.transform.localScale = Vector3.one * stage.figureScale;
+                stage.ghost.transform.localScale = Vector3.one * stage.figureScale;
+            }
             stage.InitShowables();
             stage.ComputeFitBounds();
             return stage;

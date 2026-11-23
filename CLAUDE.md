@@ -20,6 +20,7 @@ Game Off 2026（主题 SHIFT）参赛作品。死神把你的死亡通知单丢�
   - `powershell -ExecutionPolicy Bypass -File tools\test.ps1`（EditMode 测试，结果 `TestResults/EditMode.xml`）
   - `powershell -ExecutionPolicy Bypass -File tools\test-playmode.ps1`（PlayMode 实测：从标题自动通关到片尾，带 GPU，结果 `TestResults/PlayMode.xml`，截图和报告写到 `Logs/playtest/`）
   - `powershell -ExecutionPolicy Bypass -File tools\build-webgl.ps1`（输出 `Builds/WebGL`；路径里有中文导致 IL2CPP 报错时加 `-Subst`）
+  - `python tools\package.py`（把 `Builds/WebGL` 打成 `Builds/clocking-out-webgl.zip`，index.html 在根、路径用正斜杠，供 itch 上传）
 - 同一时间只能有一个 Unity 实例（脚本会检查 `Temp\UnityLockfile`），别和其他 Agent 抢着跑。
 - 改完代码至少保证 compile 通过；动了 Core 或关卡就要跑 test。
 

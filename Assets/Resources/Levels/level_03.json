@@ -52,13 +52,18 @@
   "anchors": ["oven", "store", "attic", "roster", "ledger", "vat", "hatch", "door", "sign", "baker", "apprentice", "shop"],
   "clues": [
     {
+      "anchor": "oven",
+      "text": "The oven. The baker never lets it go out between batches.",
+      "minRejects": 0
+    },
+    {
       "anchor": "roster",
       "text": "BAKER — 4 AM: oven, first batch. 5 AM: carry bread to the shop front. 6 AM: oven, second batch. APPRENTICE — fetch flour at 4, home by half past.",
       "minRejects": 0
     },
     {
       "anchor": "ledger",
-      "text": "The accounts. Every page of them.",
+      "text": "The accounts. Every page of them. Shelved in the storeroom, where nothing ever burns.",
       "minRejects": 0
     },
     {

@@ -180,8 +180,9 @@ namespace DeathNotice.Game
     }
 
     /// <summary>
-    /// The Grim Reaper as a flat cut-out standing at the bottom-right of the 3D view, half behind the paper:
-    /// breathes slowly, and raises his arm and brings the rubber stamp down when a form is stamped.
+    /// The Grim Reaper as a flat cut-out standing at the bottom-right of the 3D view, beside the paper:
+    /// breathes slowly, and raises his arm and brings the rubber stamp down when a form is stamped
+    /// (the arm drops straight back once the stamp lands).
     /// </summary>
     public class ReaperUI : MonoBehaviour
     {
@@ -311,14 +312,17 @@ namespace DeathNotice.Game
                 SetArm(Mathf.Lerp(-150f, -78f, k * k * k));
                 yield return null;
             }
-            // recoil and hold, then drift back to idle in Update
+            // the stamp has landed: pull the arm straight back down to the idle pose (no hold)
             t = 0f;
-            while (t < 0.5f)
+            const float back = 0.16f;
+            while (t < back)
             {
                 t += Time.unscaledDeltaTime;
-                SetArm(-78f + Mathf.Sin(Mathf.Clamp01(t / 0.5f) * Mathf.PI) * 6f);
+                float k = Mathf.Clamp01(t / back);
+                SetArm(Mathf.Lerp(-78f, -12f, 1f - (1f - k) * (1f - k)));
                 yield return null;
             }
+            SetArm(-12f);
             gesture = null;
         }
     }

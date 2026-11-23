@@ -33,7 +33,7 @@
 | 6 | fall_lamp | cause:fall | — | verdict | "A long drop from the gallery. The lamp stayed dark, and your lantern went down with you." |
 
 - wish.all: `lamp_lit`
-- 线索：lamp「The wick is dry and ready. All it needs is a flame.」；lantern「A pilot lantern, always lit. The only fire on the rock.」；dock「Deep water. Cold.」；beach「The tide comes right up to the stones.」；gallery「A sixty-foot drop to the rocks.」
+- 线索：lamp「The wick is dry and ready. All it needs is a flame.」；lantern「A pilot lantern, always lit, hanging beside the great lamp. The only fire on the rock.」；dock「Deep water. Cold.」；beach「The tide comes right up to the stones.」；gallery「A sixty-foot drop to the rocks.」
 
 ## 第 2 关 The Mill（加入班次：世界状态随时间变）
 
@@ -60,7 +60,7 @@
 | 12 | rush | gate_open, pond_deep | — | add wheel_turning | caption "The whole pond comes through at once. The old wheel shudders, complains, and turns." |
 
 - wish.all: `wheel_turning`
-- 线索：dam notice「Upstream dam opens its gates for the Noon Shift only.」；gauge「Pond depth gauge.」（Shift 预览时显示水位）；lever「Seized solid since spring. Needs one good whack from above.」；trapdoor「Opens onto the flour sacks below.」；sign「NO NAKED FLAMES. Flour dust.」；wheel「Dry oak. Ten years without water.」
+- 线索：dam notice「Upstream dam opens its gates for the Noon Shift only.」；gauge「Pond depth gauge. It reads differently on every shift.」（Shift 预览时显示水位）；lever「Seized solid since spring. Needs one good whack from above.」；trapdoor「Opens onto the flour sacks below.」；sign「NO NAKED FLAMES. Flour dust.」；wheel「Dry oak. Ten years without water.」
 
 ## 第 3 关 The Bakery（加入目击者）
 
@@ -85,7 +85,7 @@
 | 9 | spread | fire_loose | — | add ledger_burned | caption "The fire walks through the open door into the storeroom. Paper burns first." |
 
 - wish.all: `ledger_burned`
-- 线索：roster「BAKER — 4 AM: oven, first batch. 5 AM: carry bread to the shop front. 6 AM: oven, second batch. APPRENTICE — fetch flour at 4, home by half past.」；ledger「The accounts. Every page of them.」；vat「Dough water. Deep enough to bathe in.」；hatch「Attic hatch. Opens above the storeroom.」；door「The door between oven and storeroom never shuts properly.」；sign「NO FLAME BEYOND THIS POINT.」
+- 线索：roster「BAKER — 4 AM: oven, first batch. 5 AM: carry bread to the shop front. 6 AM: oven, second batch. APPRENTICE — fetch flour at 4, home by half past.」；oven「The oven. The baker never lets it go out between batches.」；ledger「The accounts. Every page of them. Shelved in the storeroom, where nothing ever burns.」；vat「Dough water. Deep enough to bathe in.」；hatch「Attic hatch. Opens above the storeroom.」；door「The door between oven and storeroom never shuts properly.」；sign「NO FLAME BEYOND THIS POINT.」
 
 ## 第 4 关 The Railway Halt（三条诱人路线，各被一种线索否掉）
 
@@ -114,7 +114,7 @@
 
 - wish.all: `express_safe`
 - 说明：规则 6 在现有数据下不可达（evening 班 box 有人），保留它是为了规则自洽。
-- 线索：timetable「9:30 PM freight — holds on the siding until dawn. 11:59 PM express — does not stop.」；rulebook「Rule 14: a driver MUST stop when the WATER STOP arm is out.」；tank「The float raises the WATER STOP arm when the tank is brim-full. The pump refills it through the night.」；roster「Evening & Night shifts: signalman (box), stationmaster (platform). Graveyard shift: unstaffed since the budget cuts.」；lever「Points lever. Shifts the express onto the siding.」；brazier「Lit every evening. Every driver knows it.」；telegram「BRIDGE OUT. Nobody has told the express.」
+- 线索：timetable「9:30 PM freight — holds on the siding until dawn. 11:59 PM express — does not stop.」；rulebook「Rule 14: a driver MUST stop when the WATER STOP arm is out.」；tank「The float raises the WATER STOP arm when the tank is brim-full. The pump tops it up through the night, but never quite to the brim.」；roster「Evening & Night shifts: signalman (box), stationmaster (platform). Graveyard shift, 11 PM till dawn: unstaffed since the budget cuts.」；lever「Points lever. Shifts the express onto the siding.」；brazier「Lit every evening. Every driver knows it.」；telegram「BRIDGE OUT. Nobody has told the express.」
 
 ## 第 5 关 The Clock Tower（NPC 的行动改变世界；NPC 在后果地点会撤销后果）
 
@@ -158,5 +158,5 @@
 | 4 | retire | cause:retire | add shift_covered | caption "He reads the form twice. Then, very slowly, he hangs up the scythe." |
 
 - wish.all: `shift_covered`
-- 线索：time clock「Punched in: the beginning. Punched out: —」；form footer「Form 1-D. Some options are reserved for shift supervisors.」；scythe「It has never once been put down.」；keyboard plaque（第 2 次退单后出现）「He glances at the oldest key on your keyboard.」
+- 线索：time clock「Punched in: the beginning. Punched out: —. He has worked every shift there is.」；form footer「Form 1-D. Some options are reserved for shift supervisors.」；scythe「It has never once been put down.」；keyboard plaque（第 2 次退单后出现）「He glances at the oldest key on your keyboard.」
 - 结尾：通知单 Successor 一栏自动写上 "YOU"，盖 APPROVED，字幕 "Your shift begins."，进入制作名单。
